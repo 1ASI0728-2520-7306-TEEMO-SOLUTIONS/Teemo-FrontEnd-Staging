@@ -5,11 +5,12 @@ import { PortService, Port } from "../../../services/port.service"
 import { RouteService, RouteCalculationResource } from "../../../services/route.service"
 import { RouteAnimationComponent } from "../route-animation/route-animation.component"
 import { IncotermCalculatorComponent } from "../incoterm-calculator/incoterm-calculator.component"
+import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.component';
 
 @Component({
   selector: "app-port-selector",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouteAnimationComponent, IncotermCalculatorComponent],
+  imports: [CommonModule, FormsModule, RouteAnimationComponent, IncotermCalculatorComponent, AiDelayOverlayComponent],
   template: `
     <div class="port-selector-container">
       <div class="card-header">
@@ -259,148 +260,8 @@ import { IncotermCalculatorComponent } from "../incoterm-calculator/incoterm-cal
           <p>Cargando ruta {{ preselectedOrigin }} → {{ preselectedDestination }}...</p>
         </div>
       </div>
-
-      <!-- Selector de Puertos Intermedios -->
-      <div class="intermediate-ports-section" *ngIf="portsLoaded">
-        <h3>Puertos Intermedios (Opcional)</h3>
-        <p class="section-description">Seleccione los puertos intermedios por los que desea que pase la ruta.</p>
-
-        <div class="search-container">
-          <div class="search-input-wrapper">
-            <input
-              type="text"
-              [(ngModel)]="intermediateSearchTerm"
-              (input)="searchIntermediatePorts()"
-              placeholder="Buscar puertos intermedios..."
-              class="search-input"
-            />
-            <svg
-              *ngIf="intermediateSearchTerm"
-              (click)="clearIntermediateSearch()"
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="search-clear-icon"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="search-icon"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-        </div>
-
-        <div class="intermediate-ports-container">
-          <div class="selected-ports" *ngIf="selectedIntermediatePorts.length > 0">
-            <h4>Puertos intermedios seleccionados ({{ selectedIntermediatePorts.length }}):</h4>
-            <div class="selected-ports-list">
-              <div class="selected-port-item" *ngFor="let port of selectedIntermediatePorts; let i = index">
-                <span class="port-order">{{ i + 1 }}</span>
-                <span class="port-name">{{ port.name }}</span>
-                <button class="remove-port-btn" (click)="selectIntermediatePort(port)" title="Remover puerto">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="port-list-container">
-            <div class="port-list-header">
-              <span>Nombre del Puerto</span>
-              <span>Continente</span>
-            </div>
-            <div class="port-list" *ngIf="!loadingIntermediatePorts">
-              <div
-                *ngFor="let port of filteredIntermediatePorts"
-                class="port-item"
-                [class.selected]="isIntermediatePortSelected(port)"
-                [class.disabled]="isPortDisabled(port)"
-                (click)="!isPortDisabled(port) && selectIntermediatePort(port)"
-              >
-                <div class="port-name">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="port-icon"
-                  >
-                    <path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"></path>
-                    <path d="M12 12v9"></path>
-                    <path d="M8 17h8"></path>
-                    <path d="M15 13h0"></path>
-                  </svg>
-                  {{ port.name }}
-                </div>
-                <div class="port-continent">{{ port.continent }}</div>
-              </div>
-            </div>
-            <div class="loading-container" *ngIf="loadingIntermediatePorts">
-              <div class="loading-spinner"></div>
-              <p>Cargando puertos...</p>
-            </div>
-            <div class="empty-state" *ngIf="filteredIntermediatePorts.length === 0 && !loadingIntermediatePorts">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="empty-icon"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-              <p>No se encontraron puertos que coincidan con la búsqueda.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Sección de Visualización de Ruta -->
-      <div class="route-visualization-section" *ngIf="showRouteVisualization">
+      <div class="route-visualization-section" *ngIf="showRouteVisualization" style="position: relative">
         <h3>Visualización de Ruta</h3>
         <div class="route-summary" *ngIf="routeData">
           <div class="summary-item">
@@ -423,6 +284,16 @@ import { IncotermCalculatorComponent } from "../incoterm-calculator/incoterm-cal
           [intermediatePorts]="selectedIntermediatePorts"
           [routeData]="routeData"
         ></app-route-animation>
+        <app-ai-delay-overlay
+          [origin]="selectedOriginPort?.name || null"
+          [destination]="selectedDestinationPort?.name || null"
+          [distanceNm]="routeData?.totalDistance || null"
+          [originLat]="selectedOriginPort?.coordinates?.latitude || null"
+          [originLon]="selectedOriginPort?.coordinates?.longitude || null"
+          [destLat]="selectedDestinationPort?.coordinates?.latitude || null"
+          [destLon]="selectedDestinationPort?.coordinates?.longitude || null"
+          [cruiseSpeedKnots]="18">
+        </app-ai-delay-overlay>
       </div>
 
       <!-- Botones de Acción -->

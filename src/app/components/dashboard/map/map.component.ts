@@ -1,25 +1,25 @@
-import { Component, type OnInit, type AfterViewInit, type ElementRef, ViewChild, type OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { HttpClient, HttpClientModule } from "@angular/common/http";
-import * as L from "leaflet";
-import { PortService, Port } from "../../../services/port.service";
-import { environment } from '../../../../environments/environment';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, OnDestroy } from "@angular/core"
+import { CommonModule } from "@angular/common"
+import { HttpClient, HttpClientModule } from "@angular/common/http"
+import * as L from "leaflet"
+import { PortService, Port } from "../../../services/port.service"
+import { environment } from "../../../../environments/environment"
 
 type DelayPredictionResponse = {
-  isDelay: boolean;
-  delayHours: number;
-  riskScore?: number;
+  isDelay: boolean
+  delayHours: number
+  riskScore?: number
   inputs?: {
-    distanceKm?: number;
-    cruiseKnots?: number;
-    avgWindKnots?: number;
-    maxWaveM?: number;
-  };
+    distanceKm?: number
+    cruiseKnots?: number
+    avgWindKnots?: number
+    maxWaveM?: number
+  }
   model?: {
-    name?: string;
-    version?: string;
-  };
-};
+    name?: string
+    version?: string
+  }
+}
 
 @Component({
   selector: "app-map",
@@ -28,7 +28,7 @@ type DelayPredictionResponse = {
   template: `
     <div class="map-container scale-in" style="position:relative">
       <div class="map-header">
-        <h3>Mapa de Puertos Marítimos</h3>
+        <h3 style="padding-left: 5rem; margin: 0;">Mapa de Puertos Marítimos</h3>
         <div class="map-controls">
           <button class="map-btn" (click)="zoomIn()">Zoom In</button>
           <button class="map-btn" (click)="zoomOut()">Zoom Out</button>
@@ -79,45 +79,54 @@ type DelayPredictionResponse = {
   styles: [
     `
       .map-container {
-        background-color: white;
-        border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        position: relative;
+        margin: 0 calc(-50vw + 50%) 0 calc(-50vw + 50%);
+        height: auto;
+        width: 100vw;
+        left: calc(-50vw + 50%);
       }
 
       .map-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid #e0e0e0;
-
-        h3 {
-          margin: 0;
-          color: #2c3e50;
-        }
-
-        .map-controls {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .map-btn {
-          padding: 0.25rem 0.5rem;
-          background-color: #f1f3f4;
-          border: none;
-          border-radius: 4px;
-          font-size: 0.8rem;
-          cursor: pointer;
-
-          &:hover {
-            background-color: #e8eaed;
-          }
-        }
+        justify-content: space-between;
+        background-color: #ffffff;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e8eaed;
+        margin: 0 calc(-50vw + 50%);
+        padding-left: calc(1.5rem + (50vw - 50%));
+        padding-right: calc(1.5rem + (50vw - 50%));
       }
 
+      .map-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .map-controls {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .map-btn {
+        padding: 0.25rem 0.5rem;
+        background-color: #f1f3f4;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+
+        &:hover {
+          background-color: #e8eaed;
+        }
+      }
+    `,
+    `
       .map-canvas {
-        height: 400px;
+        height: 70vh;
         width: 100%;
       }
 
@@ -156,58 +165,84 @@ type DelayPredictionResponse = {
   ],
 })
 export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
-  private map!: L.Map;
-  private ports: Port[] = [];
-  private portMarkers: L.Marker[] = [];
-  private routeLine?: L.Polyline;
+  private map!: L.Map
+  private ports: Port[] = []
+  private portMarkers: L.Marker[] = []
+  private routeLine?: L.Polyline
 
-  private defaultCenter: L.LatLngExpression = [20, 0];
-  private defaultZoom = 2;
+  private defaultCenter: L.LatLngExpression = [20, 0]
+  private defaultZoom = 2
 
-  selectedOriginPort?: Port;
-  selectedDestinationPort?: Port;
+  selectedOriginPort?: Port
+  selectedDestinationPort?: Port
 
-  loadingPrediction = false;
-  prediction: DelayPredictionResponse | null = null;
-  predictionError: string | null = null;
+  loadingPrediction = false
+  prediction: DelayPredictionResponse | null = null
+  predictionError: string | null = null
 
-  @ViewChild("mapCanvas") mapCanvas!: ElementRef;
+  @ViewChild("mapCanvas") mapCanvas!: ElementRef
 
   // URL de predicción a partir del environment
   private get predictUrl() {
-    return `${environment.apiUrl}${environment.ai.predictDelayPath}`;
+    return `${environment.apiUrl}${environment.ai.predictDelayPath}`
   }
 
   // Listener para eventos del PortSelector
   private onRouteCalculated = (ev: Event) => {
-    const d = (ev as CustomEvent).detail as { originName: string; destinationName: string };
-    if (!d?.originName || !d?.destinationName) return;
+    const d = (ev as CustomEvent).detail as { originName: string; destinationName: string }
+    if (!d?.originName || !d?.destinationName) return
 
-    const o = this.ports.find(p => p.name === d.originName);
-    const t = this.ports.find(p => p.name === d.destinationName);
-    if (!o || !t) return;
+    const o = this.ports.find((p) => p.name === d.originName)
+    const t = this.ports.find((p) => p.name === d.destinationName)
+    if (!o || !t) return
 
-    this.selectedOriginPort = o;
-    this.selectedDestinationPort = t;
-    this.drawRouteLine();
-    this.fetchDelayPrediction();
-  };
+    this.selectedOriginPort = o
+    this.selectedDestinationPort = t
+    this.drawRouteLine()
+    this.fetchDelayPrediction()
+  }
 
-  constructor(private portService: PortService, private http: HttpClient) {}
+  constructor(
+    private portService: PortService,
+    private http: HttpClient,
+  ) {}
 
   ngOnInit(): void {
-    this.loadPorts();
+    this.loadPorts()
     // Escucha cuando otra parte del front calcule/seleccione la ruta
-    window.addEventListener("teemo:route-calculated", this.onRouteCalculated);
+    window.addEventListener("teemo:route-calculated", this.onRouteCalculated)
   }
 
   ngAfterViewInit(): void {
-    this.initMap();
+    this.injectGlobalDashboardOverrides()
+    this.initMap()
   }
 
   ngOnDestroy(): void {
-    if (this.map) this.map.remove();
-    window.removeEventListener("teemo:route-calculated", this.onRouteCalculated);
+    if (this.map) this.map.remove()
+    window.removeEventListener("teemo:route-calculated", this.onRouteCalculated)
+  }
+
+  private injectGlobalDashboardOverrides() {
+    const css = `
+      .dashboard-content { padding-left: 0 !important; padding-right: 0 !important; }
+      .dashboard-content .dashboard-grid { gap: 1.5rem !important; }
+      .dashboard-content .dashboard-grid > .map-container {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        height: auto !important;
+        border-radius: 0 !important;
+        margin-bottom: 1.5rem !important;
+      }
+    `
+    const tag = document.createElement("style")
+    tag.setAttribute("data-teemo-map-overrides", "true")
+    tag.textContent = css
+    if (!document.head.querySelector("style[data-teemo-map-overrides]")) {
+      document.head.appendChild(tag)
+    }
   }
 
   private initMap(): void {
@@ -217,30 +252,29 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       minZoom: 2,
       maxZoom: 18,
       worldCopyJump: true,
-    });
+    })
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(this.map);
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.map)
 
     if (this.ports.length > 0) {
-      this.addPortsToMap();
+      this.addPortsToMap()
     }
   }
 
   private loadPorts(): void {
     this.portService.getAllPorts().subscribe({
       next: (ports) => {
-        this.ports = ports;
-        if (this.map) this.addPortsToMap();
+        this.ports = ports
+        if (this.map) this.addPortsToMap()
       },
       error: (err) => console.error("Error al cargar puertos para el mapa:", err),
-    });
+    })
   }
 
   private addPortsToMap(): void {
-    this.clearPortMarkers();
+    this.clearPortMarkers()
 
     this.ports.forEach((port) => {
       const portIcon = L.divIcon({
@@ -248,7 +282,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         html: `<div class="port-icon" title="${port.name}"></div>`,
         iconSize: [12, 12],
         iconAnchor: [6, 6],
-      });
+      })
 
       const marker = L.marker([port.coordinates.latitude, port.coordinates.longitude], { icon: portIcon })
         .addTo(this.map)
@@ -259,100 +293,100 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
             <p>Coordenadas: ${port.coordinates.latitude.toFixed(4)}, ${port.coordinates.longitude.toFixed(4)}</p>
             <p style="margin-top:8px;"><em>Click para seleccionar Origen/Destino</em></p>
           </div>
-        `);
+        `)
 
       marker.on("click", () => {
-        this.handlePortClick(port);
-      });
+        this.handlePortClick(port)
+      })
 
-      this.portMarkers.push(marker);
-    });
+      this.portMarkers.push(marker)
+    })
 
-    this.addPortMarkerStyles();
+    this.addPortMarkerStyles()
   }
 
   private handlePortClick(port: Port) {
     if (!this.selectedOriginPort || (this.selectedOriginPort && this.selectedDestinationPort)) {
-      this.selectedOriginPort = port;
-      this.selectedDestinationPort = undefined;
-      this.prediction = null;
-      this.predictionError = null;
-      this.drawRouteLine();
-      return;
+      this.selectedOriginPort = port
+      this.selectedDestinationPort = undefined
+      this.prediction = null
+      this.predictionError = null
+      this.drawRouteLine()
+      return
     }
 
     if (!this.selectedDestinationPort) {
-      if (this.selectedOriginPort.name === port.name) return;
-      this.selectedDestinationPort = port;
-      this.drawRouteLine();
-      this.fetchDelayPrediction();
+      if (this.selectedOriginPort.name === port.name) return
+      this.selectedDestinationPort = port
+      this.drawRouteLine()
+      this.fetchDelayPrediction()
     }
   }
 
   private drawRouteLine() {
     if (this.routeLine) {
-      this.map.removeLayer(this.routeLine);
-      this.routeLine = undefined;
+      this.map.removeLayer(this.routeLine)
+      this.routeLine = undefined
     }
 
     if (this.selectedOriginPort && this.selectedDestinationPort) {
-      const a = this.selectedOriginPort.coordinates;
-      const b = this.selectedDestinationPort.coordinates;
+      const a = this.selectedOriginPort.coordinates
+      const b = this.selectedDestinationPort.coordinates
       this.routeLine = L.polyline(
         [
           [a.latitude, a.longitude],
           [b.latitude, b.longitude],
         ],
-        { color: "#1a73e8", weight: 3, opacity: 0.9 }
-      ).addTo(this.map);
+        { color: "#1a73e8", weight: 3, opacity: 0.9 },
+      ).addTo(this.map)
 
-      this.map.fitBounds(this.routeLine.getBounds(), { padding: [40, 40] });
+      this.map.fitBounds(this.routeLine.getBounds(), { padding: [40, 40] })
     }
   }
 
   fetchDelayPrediction() {
-    if (!this.selectedOriginPort || !this.selectedDestinationPort) return;
+    if (!this.selectedOriginPort || !this.selectedDestinationPort) return
 
-    this.loadingPrediction = true;
-    this.predictionError = null;
+    this.loadingPrediction = true
+    this.predictionError = null
 
     const payload = {
       origin: this.selectedOriginPort.name,
       destination: this.selectedDestinationPort.name,
-    };
+    }
 
-    console.log("[AI] POST", this.predictUrl, payload);
+    console.log("[AI] POST", this.predictUrl, payload)
 
     this.http.post<DelayPredictionResponse>(this.predictUrl, payload).subscribe({
       next: (resp) => {
-        this.prediction = resp;
-        this.loadingPrediction = false;
+        this.prediction = resp
+        this.loadingPrediction = false
       },
       error: (err) => {
-        console.error("[AI] predict-delay error", err);
-        this.predictionError = "No se pudo obtener la predicción.";
-        this.loadingPrediction = false;
+        console.error("[AI] predict-delay error", err)
+        this.predictionError = "No se pudo obtener la predicción."
+        this.loadingPrediction = false
       },
-    });
+    })
   }
 
   pillClass() {
-    if (this.loadingPrediction || !this.prediction) return "";
-    const h = this.prediction.delayHours;
-    if (h >= 6) return "bad";
-    if (h >= 2) return "warn";
-    return "";
+    if (this.loadingPrediction || !this.prediction) return ""
+    const h = this.prediction.delayHours
+    if (h >= 6) return "bad"
+    if (h >= 2) return "warn"
+    return ""
   }
 
   private clearPortMarkers(): void {
     this.portMarkers.forEach((m) => {
-      if (this.map) this.map.removeLayer(m);
-    });
-    this.portMarkers = [];
+      if (this.map) this.map.removeLayer(m)
+    })
+    this.portMarkers = []
   }
 
   private addPortMarkerStyles(): void {
-    const style = document.createElement("style");
+    const style = document.createElement("style")
     style.textContent = `
       .port-icon {
         width: 12px;
@@ -371,94 +405,100 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         font-size: 12px;
         color: #5f6368;
       }
-    `;
-    document.head.appendChild(style);
+    `
+    document.head.appendChild(style)
   }
 
   // Controles
-  zoomIn(): void { if (this.map) this.map.zoomIn(); }
-  zoomOut(): void { if (this.map) this.map.zoomOut(); }
-  resetView(): void { if (this.map) this.map.setView(this.defaultCenter, this.defaultZoom); }
+  zoomIn(): void {
+    if (this.map) this.map.zoomIn()
+  }
+  zoomOut(): void {
+    if (this.map) this.map.zoomOut()
+  }
+  resetView(): void {
+    if (this.map) this.map.setView(this.defaultCenter, this.defaultZoom)
+  }
 
   clearSelection(): void {
-    this.selectedOriginPort = undefined;
-    this.selectedDestinationPort = undefined;
-    this.prediction = null;
-    this.predictionError = null;
+    this.selectedOriginPort = undefined
+    this.selectedDestinationPort = undefined
+    this.prediction = null
+    this.predictionError = null
     if (this.routeLine) {
-      this.map.removeLayer(this.routeLine);
-      this.routeLine = undefined;
+      this.map.removeLayer(this.routeLine)
+      this.routeLine = undefined
     }
   }
 
   // ——— Bloque canvas alternativo (opcional) ———
   drawMap(): void {
     try {
-      const canvasElement = this.mapCanvas?.nativeElement;
-      if (!canvasElement) return;
+      const canvasElement = this.mapCanvas?.nativeElement
+      if (!canvasElement) return
 
       if (!(canvasElement instanceof HTMLCanvasElement)) {
-        const canvas = document.createElement("canvas");
-        canvas.width = canvasElement.offsetWidth;
-        canvas.height = canvasElement.offsetHeight;
-        canvasElement.appendChild(canvas);
-        const ctx = canvas.getContext("2d");
+        const canvas = document.createElement("canvas")
+        canvas.width = canvasElement.offsetWidth
+        canvas.height = canvasElement.offsetHeight
+        canvasElement.appendChild(canvas)
+        const ctx = canvas.getContext("2d")
         if (ctx) {
-          this.drawMapContent(ctx, canvas.width, canvas.height);
+          this.drawMapContent(ctx, canvas.width, canvas.height)
         } else {
-          console.error("No se pudo obtener el contexto 2D del canvas");
+          console.error("No se pudo obtener el contexto 2D del canvas")
         }
       } else {
-        canvasElement.width = canvasElement.offsetWidth;
-        canvasElement.height = canvasElement.offsetHeight;
-        const ctx = canvasElement.getContext("2d");
+        canvasElement.width = canvasElement.offsetWidth
+        canvasElement.height = canvasElement.offsetHeight
+        const ctx = canvasElement.getContext("2d")
         if (ctx) {
-          this.drawMapContent(ctx, canvasElement.width, canvasElement.height);
+          this.drawMapContent(ctx, canvasElement.width, canvasElement.height)
         } else {
-          console.error("No se pudo obtener el contexto 2D del canvas");
+          console.error("No se pudo obtener el contexto 2D del canvas")
         }
       }
     } catch (error) {
-      console.error("Error al dibujar el mapa:", error);
-      this.showFallbackMap();
+      console.error("Error al dibujar el mapa:", error)
+      this.showFallbackMap()
     }
   }
 
   drawMapContent(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    ctx.beginPath();
-    ctx.strokeStyle = "#2c3e50";
-    ctx.lineWidth = 1;
+    ctx.beginPath()
+    ctx.strokeStyle = "#2c3e50"
+    ctx.lineWidth = 1
 
-    ctx.beginPath();
-    ctx.strokeStyle = "#1a73e8";
-    ctx.lineWidth = 2;
-    ctx.moveTo(100, 150);
-    ctx.bezierCurveTo(200, 100, 300, 200, 400, 150);
-    ctx.stroke();
+    ctx.beginPath()
+    ctx.strokeStyle = "#1a73e8"
+    ctx.lineWidth = 2
+    ctx.moveTo(100, 150)
+    ctx.bezierCurveTo(200, 100, 300, 200, 400, 150)
+    ctx.stroke()
 
-    ctx.beginPath();
-    ctx.strokeStyle = "#34a853";
-    ctx.lineWidth = 2;
-    ctx.moveTo(150, 250);
-    ctx.bezierCurveTo(250, 200, 350, 300, 450, 250);
-    ctx.stroke();
+    ctx.beginPath()
+    ctx.strokeStyle = "#34a853"
+    ctx.lineWidth = 2
+    ctx.moveTo(150, 250)
+    ctx.bezierCurveTo(250, 200, 350, 300, 450, 250)
+    ctx.stroke()
 
-    this.drawShip(ctx, 100, 150, "#1a73e8");
-    this.drawShip(ctx, 400, 150, "#1a73e8");
-    this.drawShip(ctx, 150, 250, "#34a853");
-    this.drawShip(ctx, 450, 250, "#34a853");
+    this.drawShip(ctx, 100, 150, "#1a73e8")
+    this.drawShip(ctx, 400, 150, "#1a73e8")
+    this.drawShip(ctx, 150, 250, "#34a853")
+    this.drawShip(ctx, 450, 250, "#34a853")
   }
 
   drawShip(ctx: CanvasRenderingContext2D, x: number, y: number, color: string): void {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = color
+    ctx.beginPath()
+    ctx.arc(x, y, 5, 0, Math.PI * 2)
+    ctx.fill()
   }
 
   showFallbackMap(): void {
-    const container = this.mapCanvas?.nativeElement;
-    if (!container) return;
+    const container = this.mapCanvas?.nativeElement
+    if (!container) return
     container.innerHTML = `
       <div style="display: flex; justify-content: center; align-items: center; height: 100%; background-color: #f8f9fa;">
         <div style="text-align: center; padding: 20px;">
@@ -470,7 +510,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
           </button>
         </div>
       </div>
-    `;
-    container.addEventListener("retry", () => this.drawMap());
+    `
+    container.addEventListener("retry", () => this.drawMap())
   }
 }

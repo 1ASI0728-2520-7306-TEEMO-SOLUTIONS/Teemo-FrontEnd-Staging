@@ -1,4 +1,4 @@
-import { Component, type OnInit, type AfterViewInit, type OnDestroy, ElementRef } from "@angular/core"
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef } from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { RouterModule } from "@angular/router"
 import { MapComponent } from "./map/map.component"
@@ -7,9 +7,9 @@ import { PortSelectorComponent } from "./port-selector/port-selector.component"
 import { SidebarComponent } from "../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../shared/header/header.component"
 import { RouteAnimationComponent } from "./route-animation/route-animation.component"
-import  { AnimationService } from "../../services/animation.service"
-import  { PortService } from "../../services/port.service"
-import  { RouteService } from "../../services/route.service"
+import { AnimationService } from "../../services/animation.service"
+import { PortService } from "../../services/port.service"
+import { RouteService } from "../../services/route.service"
 
 declare var VANTA: any
 
@@ -406,12 +406,12 @@ interface PopularRoute {
       .map-container {
         grid-area: map;
         background-color: rgba(255, 255, 255, 0.95);
-        border-radius: 0.5rem;
+        border-radius: 0; /* removed border-radius to remove top border */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        height: 500px;
+        height: calc(100vh - 300px); /* increased height to fill viewport */
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.2);
       }

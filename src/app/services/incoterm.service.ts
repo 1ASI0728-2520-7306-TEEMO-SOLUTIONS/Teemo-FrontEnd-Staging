@@ -1,6 +1,8 @@
 import { Injectable } from "@angular/core"
 import { type Observable, of } from "rxjs"
 import { delay } from "rxjs/operators"
+import { HttpClient } from "@angular/common/http";
+import { environment } from "../../environments/environment";
 
 export interface IncotermFormData {
   cargoType: string
@@ -124,6 +126,8 @@ interface RouteData {
   providedIn: "root",
 })
 export class IncotermService {
+  private readonly base = `${environment.apiUrl}/incoterms`;
+  
   private cargoTypes: { [key: string]: CargoTypeData } = {
     general: {
       name: "Carga General",
@@ -218,7 +222,7 @@ export class IncotermService {
     },
   }
 
-  constructor() {}
+  constructor(private http: HttpClient) {}
 
   calculateIncoterms(
     formData: IncotermFormData,
@@ -226,8 +230,11 @@ export class IncotermService {
     destinationPort: string,
     distance: number,
   ): Observable<IncotermCalculationResult> {
-    const result = this.generateRealisticIncotermRecommendation(formData, originPort, destinationPort, distance)
-    return of(result).pipe(delay(2000)) // Simulate complex calculation time
+    //  const result = this.generateRealisticIncotermRecommendation(formData, originPort, destinationPort, distance)
+    //  return of(result).pipe(delay(2000)) // Simulate complex calculation time
+
+    const payload = { ...formData, originPort, destinationPort, distance };
+    return this.http.post<IncotermCalculationResult>(`${this.base}/calculate`, payload);
   }
 
   private generateRealisticIncotermRecommendation(

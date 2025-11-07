@@ -1384,6 +1384,8 @@ export class IncotermCalculatorComponent implements OnInit {
   }
 
   calculateIncoterms(): void {
+    throw new Error("Method not implemented.");
+
     if (!this.isFormValid()) return
 
     this.isCalculating = true

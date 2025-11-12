@@ -1,9 +1,18 @@
-import { Component, Input, type OnInit, type OnDestroy, type OnChanges, type SimpleChanges } from "@angular/core"
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  type OnInit,
+  type OnDestroy,
+  type OnChanges,
+  type SimpleChanges,
+} from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { FormsModule } from "@angular/forms"
 import * as L from "leaflet"
-import  { PortService, Port } from "../../../services/port.service"
-import { RouteCalculationResource } from "../../../services/route.service"
+import { PortService, Port, type PortAdminRecord } from "../../../services/port.service"
+import { RouteCalculationResource, RouteService } from "../../../services/route.service"
 
 interface PortCoordinates {
   latitude: number
@@ -64,14 +73,72 @@ interface LineSegment {
         </div>
       </div>
 
+      <div class="recalc-banner" *ngIf="isRecalculatingRoute" data-testid="recalc-banner">
+        <div class="loading-indicator">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="animate-spin"
+          >
+            <path d="M21 12a9 9 0 11-6.219-8.56"></path>
+          </svg>
+          Recalculando ruta alternativa por puertos deshabilitados…
+        </div>
+      </div>
+
+      <div class="recalc-alert info" *ngIf="recalculationInfoVisible" data-testid="recalc-info">
+        <div>
+          <strong>Ruta alternativa activa</strong>
+          <p>Se está usando una ruta alternativa porque {{ disabledPortsInRoute.join(", ") }} están deshabilitados.</p>
+        </div>
+        <button class="detail-btn" (click)="toggleAlternativeDetails()">
+          {{ showAlternativeDetails ? "Ocultar detalles" : "Ver detalles" }}
+        </button>
+      </div>
+
+      <div class="alt-details" *ngIf="recalculationInfoVisible && showAlternativeDetails" data-testid="recalc-details">
+        <div *ngIf="currentRouteData?.warnings?.length">
+          <h5>Advertencias</h5>
+          <ul>
+            <li *ngFor="let warning of currentRouteData?.warnings">{{ warning }}</li>
+          </ul>
+        </div>
+        <div *ngIf="currentRouteData?.metadata">
+          <h5>Metadatos</h5>
+          <pre>{{ currentRouteData?.metadata | json }}</pre>
+        </div>
+      </div>
+
+      <div class="recalc-alert warning" *ngIf="recalculationConflictMessage" data-testid="recalc-conflict">
+        <div>
+          <strong>Sin ruta viable</strong>
+          <p>{{ recalculationConflictMessage }}</p>
+          <p *ngIf="recalculationConflictPortNames.length > 0">
+            Puertos evitados: {{ recalculationConflictPortNames.join(", ") }}
+          </p>
+        </div>
+        <button class="detail-btn danger" (click)="backRequested.emit()">Volver atrás</button>
+      </div>
+
+      <div class="recalc-alert error" *ngIf="recalculationErrorMessage" data-testid="recalc-error">
+        {{ recalculationErrorMessage }}
+      </div>
+
       <!-- Información de la Ruta -->
-      <div class="route-info" *ngIf="routeData">
+      <div class="route-info" *ngIf="currentRouteData">
         <div class="info-card">
           <h4>Información de la Ruta</h4>
           <div class="info-grid">
             <div class="info-item">
               <span class="label">Distancia Total:</span>
-              <span class="value">{{ routeData.totalDistance | number : "1.0-0" }} millas náuticas</span>
+              <span class="value">{{ currentRouteData?.totalDistance | number : "1.0-0" }} millas náuticas</span>
             </div>
             <div class="info-item">
               <span class="label">Puertos en la Ruta:</span>
@@ -369,6 +436,85 @@ interface LineSegment {
         font-weight: 500;
       }
 
+      .recalc-banner,
+      .recalc-alert {
+        margin-bottom: 1rem;
+        border-radius: 0.75rem;
+        padding: 0.85rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .recalc-banner {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        color: #bfdbfe;
+      }
+
+      .recalc-alert.info {
+        background: rgba(14, 165, 233, 0.15);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+        color: #e0f2fe;
+      }
+
+      .recalc-alert.warning {
+        background: rgba(249, 115, 22, 0.15);
+        border: 1px solid rgba(251, 146, 60, 0.4);
+        color: #fed7aa;
+      }
+
+      .recalc-alert.error {
+        background: rgba(248, 113, 113, 0.15);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        color: #fecaca;
+      }
+
+      .detail-btn {
+        border: none;
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        background: rgba(15, 23, 42, 0.2);
+        color: inherit;
+      }
+
+      .detail-btn:hover {
+        background: rgba(15, 23, 42, 0.35);
+      }
+
+      .detail-btn.danger {
+        border: 1px solid rgba(248, 113, 113, 0.5);
+      }
+
+      .alt-details {
+        border: 1px dashed rgba(148, 163, 184, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: #0f172a;
+        background: #f1f5f9;
+        margin-bottom: 1.25rem;
+      }
+
+      .alt-details h5 {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+      }
+
+      .alt-details ul {
+        margin: 0.5rem 0 0.75rem 1rem;
+      }
+
+      .alt-details pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+      }
+
       .animate-spin {
         animation: spin 1s linear infinite;
       }
@@ -607,6 +753,8 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   @Input() destinationPortName = ""
   @Input() intermediatePorts: Port[] = []
   @Input() routeData: RouteCalculationResource | null = null
+  @Input() routeId: string | null = null
+  @Output() backRequested = new EventEmitter<void>()
 
   private map: L.Map | null = null
   private shipMarkers: L.Marker[] = [] // Array of ship markers for different world copies
@@ -624,6 +772,14 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   // Datos de la ruta
   routePoints: L.LatLng[] = []
   routePorts: RoutePort[] = []
+  currentRouteData: RouteCalculationResource | null = null
+  disabledPortsInRoute: string[] = []
+  recalculationConflictPortNames: string[] = []
+  recalculationConflictMessage = ""
+  recalculationErrorMessage = ""
+  recalculationInfoVisible = false
+  showAlternativeDetails = false
+  isRecalculatingRoute = false
 
   // Datos GeoJSON para detección de tierra
   private geoJsonData: GeoJSONData | null = null
@@ -667,10 +823,15 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   })
 
   // Add these properties after the existing ones
+  private adminPortsIndex = new Map<string, PortAdminRecord>()
+  private recalculationConflictSignature: string | null = null
   private userInteracting = false
   private interactionTimeout: any = null
 
-  constructor(private portService: PortService) {}
+  constructor(
+    private portService: PortService,
+    private routeService: RouteService,
+  ) {}
 
   ngOnInit(): void {
     this.initializeMap()
@@ -691,9 +852,17 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes["routeData"] && this.routeData) {
-      console.log("RouteData recibida:", this.routeData)
+    if (changes["routeId"] && !changes["routeId"].firstChange) {
+      this.recalculationConflictSignature = null
+    }
+
+    if (changes["routeData"]) {
+      this.currentRouteData = this.routeData
+      if (this.currentRouteData) {
+        console.log("RouteData recibida:", this.currentRouteData)
+      }
       this.processRouteData()
+      this.evaluatePortsAvailability()
     }
   }
 
@@ -742,7 +911,7 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       console.log("GeoJSON local cargado exitosamente:", this.geoJsonFeatureCount, "características")
 
       // Si ya tenemos datos de ruta, reprocesarlos con la nueva información geográfica
-      if (this.routeData) {
+      if (this.currentRouteData) {
         this.processRouteData()
       }
     } catch (error) {
@@ -764,7 +933,7 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
         this.geoJsonFeatureCount = this.geoJsonData?.features?.length || 0
         console.log("GeoJSON de respaldo cargado:", this.geoJsonFeatureCount, "características")
 
-        if (this.routeData) {
+        if (this.currentRouteData) {
           this.processRouteData()
         }
       } catch (fallbackError) {
@@ -789,18 +958,19 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     this.setupInteractionTracking()
 
     // Procesar datos de ruta si ya están disponibles
-    if (this.routeData) {
+    if (this.currentRouteData) {
       this.processRouteData()
     }
   }
 
   private processRouteData(): void {
-    if (!this.routeData || !this.map) {
+    if (!this.currentRouteData || !this.map) {
       console.log("No hay datos de ruta o mapa no inicializado")
       return
     }
 
-    console.log("Procesando datos de ruta:", this.routeData)
+    const activeRoute = this.currentRouteData
+    console.log("Procesando datos de ruta:", activeRoute)
 
     // Limpiar datos anteriores
     this.clearMap()
@@ -808,16 +978,16 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     this.routePoints = []
 
     // Verificar si tenemos coordinatesMapping (datos reales de la API)
-    if (this.routeData.coordinatesMapping && this.routeData.optimalRoute) {
+    if (activeRoute.coordinatesMapping && activeRoute.optimalRoute) {
       console.log("Usando datos reales de la API")
 
       // Extraer puertos de la ruta óptima
-      const portNames = this.routeData.optimalRoute
+      const portNames = activeRoute.optimalRoute
       console.log("Nombres de puertos en la ruta:", portNames)
 
       // Crear array de puertos con sus coordenadas
       portNames.forEach((portName) => {
-        const coordinates = this.routeData!.coordinatesMapping![portName]
+        const coordinates = activeRoute.coordinatesMapping![portName]
         if (coordinates) {
           this.routePorts.push({
             name: portName,
@@ -842,6 +1012,140 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  toggleAlternativeDetails(): void {
+    this.showAlternativeDetails = !this.showAlternativeDetails
+  }
+
+  private evaluatePortsAvailability(): void {
+    const routeNames = this.collectRoutePortNames()
+
+    if (routeNames.length === 0) {
+      if (!this.recalculationInfoVisible) {
+        this.disabledPortsInRoute = []
+      }
+      this.recalculationConflictMessage = ""
+      return
+    }
+
+    this.portService.getAdminPorts().subscribe({
+      next: (ports) => {
+        this.adminPortsIndex = new Map(ports.map((port) => [port.id, port]))
+        const metadataPortIds = this.extractMetadataPortIds()
+
+        const disabledMatches = ports.filter(
+          (port) => port.disabled && this.matchesRoutePort(port, routeNames, metadataPortIds),
+        )
+
+        if (disabledMatches.length === 0) {
+          if (!this.recalculationInfoVisible) {
+            this.disabledPortsInRoute = []
+          }
+          if (!this.isRecalculatingRoute) {
+            this.recalculationConflictMessage = ""
+            this.recalculationErrorMessage = ""
+          }
+          return
+        }
+
+        this.disabledPortsInRoute = disabledMatches.map((port) => port.name)
+        this.recalculationErrorMessage = ""
+
+        if (!this.routeId) {
+          this.recalculationErrorMessage =
+            "Se detectaron puertos deshabilitados pero falta el identificador de la ruta para recalcular."
+          return
+        }
+
+        const signature = this.buildDisabledSignature(disabledMatches)
+        if (this.isRecalculatingRoute || this.recalculationConflictSignature === signature) {
+          return
+        }
+
+        this.triggerRouteRecalculation(disabledMatches, signature)
+      },
+      error: (error) => {
+        this.recalculationErrorMessage =
+          error?.error?.message || error?.message || "No se pudo verificar el estado de los puertos."
+      },
+    })
+  }
+
+  private triggerRouteRecalculation(disabledPorts: PortAdminRecord[], signature: string): void {
+    if (!this.routeId) return
+
+    const avoidedPortIds = disabledPorts.map((port) => port.id).filter((id): id is string => !!id)
+
+    this.isRecalculatingRoute = true
+    this.recalculationConflictMessage = ""
+    this.recalculationErrorMessage = ""
+    this.recalculationInfoVisible = false
+    this.showAlternativeDetails = false
+
+    this.routeService.recalculateRoute(this.routeId, { avoidedPortIds }).subscribe({
+      next: (route) => {
+        this.isRecalculatingRoute = false
+        this.recalculationConflictSignature = null
+        this.currentRouteData = route
+        this.recalculationInfoVisible = true
+        this.recalculationConflictMessage = ""
+        this.recalculationErrorMessage = ""
+        this.recalculationConflictPortNames = []
+        this.processRouteData()
+      },
+      error: (error) => {
+        this.isRecalculatingRoute = false
+        if (error?.status === 409) {
+          this.recalculationConflictMessage =
+            error.error?.message || "No existe una ruta viable evitando los puertos deshabilitados."
+          const avoidedIds: string[] = Array.isArray(error.error?.avoidedPortIds) ? error.error.avoidedPortIds : []
+          this.recalculationConflictPortNames = avoidedIds.map((id) => this.adminPortsIndex.get(id)?.name || id)
+          this.recalculationConflictSignature = signature
+        } else {
+          this.recalculationErrorMessage =
+            error?.error?.message || error?.message || "No se pudo recalcular la ruta."
+          this.recalculationConflictSignature = null
+        }
+      },
+    })
+  }
+
+  private collectRoutePortNames(): string[] {
+    if (this.currentRouteData?.optimalRoute?.length) {
+      return this.currentRouteData.optimalRoute
+    }
+
+    const names: string[] = []
+    if (this.originPortName) {
+      names.push(this.originPortName)
+    }
+
+    if (this.intermediatePorts?.length) {
+      names.push(...this.intermediatePorts.map((port) => port.name))
+    }
+
+    if (this.destinationPortName) {
+      names.push(this.destinationPortName)
+    }
+
+    return names.filter((name) => !!name)
+  }
+
+  private extractMetadataPortIds(): string[] {
+    const metadataPortIds = this.currentRouteData?.metadata?.portIds
+    return Array.isArray(metadataPortIds) ? metadataPortIds : []
+  }
+
+  private matchesRoutePort(port: PortAdminRecord, routeNames: string[], metadataPortIds: string[]): boolean {
+    const normalizedName = port.name?.toLowerCase()
+    const nameMatch = routeNames.some((name) => name?.toLowerCase() === normalizedName)
+    const idMatch = port.id ? metadataPortIds.includes(port.id) : false
+    return nameMatch || idMatch
+  }
+
+  private buildDisabledSignature(disabledPorts: PortAdminRecord[]): string {
+    const identifiers = disabledPorts.map((port) => port.id || port.name).sort()
+    return `${this.routeId ?? "no-route"}:${identifiers.join("|")}`
+  }
   private loadPortsAndDrawRoute(): void {
     if (!this.map || this.routePorts.length === 0) {
       console.log("No hay mapa o puertos para mostrar")

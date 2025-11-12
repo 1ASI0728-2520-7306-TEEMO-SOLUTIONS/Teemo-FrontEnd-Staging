@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core"
-import {  HttpClient, type HttpErrorResponse, HttpHeaders } from "@angular/common/http"
-import {  Observable, of } from "rxjs"
+import { HttpClient, type HttpErrorResponse, HttpHeaders, HttpParams } from "@angular/common/http"
+import { Observable, of, throwError } from "rxjs"
 import { catchError, tap } from "rxjs/operators"
 import { environment } from "../../environments/environment"
 import { AuthService } from "./auth.service"
@@ -13,6 +13,14 @@ export interface Port {
     longitude: number
   }
   continent: string
+  disabled?: boolean
+  lastActionBy?: string
+  lastActionAt?: string
+}
+
+export interface PortAdminRecord extends Port {
+  status?: "ENABLED" | "DISABLED"
+  lastAction?: string
 }
 
 @Injectable({
@@ -31,6 +39,7 @@ export class PortService {
         longitude: 103.851959,
       },
       continent: "Asia",
+      disabled: false,
     },
     {
       id: "2",
@@ -40,6 +49,7 @@ export class PortService {
         longitude: 4.466637,
       },
       continent: "Europe",
+      disabled: false,
     },
     {
       id: "3",
@@ -49,6 +59,7 @@ export class PortService {
         longitude: 121.46917,
       },
       continent: "Asia",
+      disabled: false,
     },
     {
       id: "4",
@@ -58,6 +69,7 @@ export class PortService {
         longitude: -118.193741,
       },
       continent: "North America",
+      disabled: false,
     },
     {
       id: "5",
@@ -67,6 +79,7 @@ export class PortService {
         longitude: -73.935242,
       },
       continent: "North America",
+      disabled: false,
     },
     {
       id: "6",
@@ -76,6 +89,7 @@ export class PortService {
         longitude: -1.404351,
       },
       continent: "Europe",
+      disabled: false,
     },
     {
       id: "7",
@@ -85,6 +99,7 @@ export class PortService {
         longitude: 55.296249,
       },
       continent: "Asia",
+      disabled: false,
     },
     {
       id: "8",
@@ -94,6 +109,7 @@ export class PortService {
         longitude: 72.877426,
       },
       continent: "Asia",
+      disabled: false,
     },
     {
       id: "9",
@@ -103,6 +119,7 @@ export class PortService {
         longitude: 151.2099,
       },
       continent: "Oceania",
+      disabled: false,
     },
     {
       id: "10",
@@ -112,6 +129,7 @@ export class PortService {
         longitude: 18.4233,
       },
       continent: "Africa",
+      disabled: false,
     },
   ]
   constructor(
@@ -122,14 +140,7 @@ export class PortService {
   getAllPorts(): Observable<Port[]> {
     console.log("Obteniendo puertos desde:", this.apiUrl)
 
-    // Obtain the authentication token
-    const token = this.authService.getToken()
-
-    // Configure headers with the authentication token
-    const headers = new HttpHeaders({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    })
+    const headers = this.buildAuthHeaders()
 
     // Try to get ports from the backend with authentication headers
     return this.http.get<Port[]>(`${this.apiUrl}/all-ports`, { headers }).pipe(
@@ -148,6 +159,33 @@ export class PortService {
         return of(this.fallbackPorts)
       }),
     )
+  }
+
+  getAdminPorts(disabled?: boolean): Observable<PortAdminRecord[]> {
+    const headers = this.buildAuthHeaders()
+    let params = new HttpParams()
+
+    if (typeof disabled === "boolean") {
+      params = params.set("disabled", String(disabled))
+    }
+
+    return this.http
+      .get<PortAdminRecord[]>(`${this.apiUrl}`, { headers, params })
+      .pipe(catchError((error) => this.handleAdminError(error, "listar puertos")))
+  }
+
+  disablePort(portId: string, reason?: string): Observable<void> {
+    const headers = this.buildAuthHeaders()
+    return this.http
+      .patch<void>(`${this.apiUrl}/${portId}/disable`, { reason }, { headers })
+      .pipe(catchError((error) => this.handleAdminError(error, "deshabilitar puerto")))
+  }
+
+  enablePort(portId: string): Observable<void> {
+    const headers = this.buildAuthHeaders()
+    return this.http
+      .patch<void>(`${this.apiUrl}/${portId}/enable`, {}, { headers })
+      .pipe(catchError((error) => this.handleAdminError(error, "habilitar puerto")))
   }
 
   // Método para obtener un puerto específico por ID
@@ -183,5 +221,28 @@ export class PortService {
         return of(filteredPorts)
       }),
     )
+  }
+
+  private buildAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken()
+    const headersConfig: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+
+    if (token) {
+      headersConfig["Authorization"] = `Bearer ${token}`
+    }
+
+    return new HttpHeaders(headersConfig)
+  }
+
+  private handleAdminError(error: HttpErrorResponse, context: string) {
+    console.error(`Error al ${context}:`, error)
+
+    if (error.status === 401) {
+      this.authService.logout()
+    }
+
+    return throwError(() => error)
   }
 }

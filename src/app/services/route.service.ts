@@ -102,25 +102,23 @@ export class RouteService {
 
   // Método modificado para calcular la ruta óptima incluyendo puertos intermedios
   calculateOptimalRoute(
-    startPort: string,
-    endPort: string,
-    intermediatePorts: string[] = [],
+    startPortId: string,
+    endPortId: string,
+    intermediatePortIds: string[] = [],
   ): Observable<RouteCalculationResource> {
-    let params = new HttpParams().set("startPort", startPort).set("endPort", endPort)
+    let params = new HttpParams().set("startPortId", startPortId).set("endPortId", endPortId)
 
-    // Añadir puertos intermedios como parámetros adicionales
-    if (intermediatePorts && intermediatePorts.length > 0) {
-      // Convertir el array de puertos intermedios a una cadena separada por comas
-      const intermediatePortsString = intermediatePorts.join(",")
-      params = params.set("intermediatePorts", intermediatePortsString)
+    if (intermediatePortIds && intermediatePortIds.length > 0) {
+      const intermediatePortIdsString = intermediatePortIds.join(",")
+      params = params.set("intermediatePortIds", intermediatePortIdsString)
 
-      console.log("Enviando puertos intermedios:", intermediatePortsString)
+      console.log("Enviando puertos intermedios (IDs):", intermediatePortIdsString)
     }
 
     console.log("Parámetros de la solicitud:", {
-      startPort,
-      endPort,
-      intermediatePorts: intermediatePorts.length > 0 ? intermediatePorts : "ninguno",
+      startPortId,
+      endPortId,
+      intermediatePortIds: intermediatePortIds.length > 0 ? intermediatePortIds : "ninguno",
     })
 
     return this.http
@@ -134,6 +132,12 @@ export class RouteService {
 
     return this.http
       .get<RouteDistanceResource>(`${this.apiUrl}/distance-between-ports`, { params })
+      .pipe(catchError(this.handleError))
+  }
+
+  recalculateRoute(routeId: string, payload: { avoidedPortIds?: string[] } = {}): Observable<RouteCalculationResource> {
+    return this.http
+      .post<RouteCalculationResource>(`${this.apiUrl}/${routeId}/recalculate`, payload)
       .pipe(catchError(this.handleError))
   }
 

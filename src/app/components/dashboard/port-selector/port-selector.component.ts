@@ -282,6 +282,8 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
           [originPortName]="selectedOriginPort?.name || ''"
           [destinationPortName]="selectedDestinationPort?.name || ''"
           [intermediatePorts]="selectedIntermediatePorts"
+          [originPortId]="selectedOriginPort?.id || null"
+          [destinationPortId]="selectedDestinationPort?.id || null"
           [routeData]="routeData"
         ></app-route-animation>
         <app-ai-delay-overlay

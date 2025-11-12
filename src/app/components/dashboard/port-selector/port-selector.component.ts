@@ -298,29 +298,6 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
 
       <!-- Botones de Acción -->
       <div class="action-buttons" *ngIf="portsLoaded">
-        <button class="btn-outline" (click)="onCancel()">Cancelar</button>
-        <button
-          class="btn-secondary"
-          [disabled]="!selectedOriginPort || !selectedDestinationPort"
-          (click)="visualizeRoute()"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="mr-2"
-          >
-            <path d="M3 21h18M4 17l8-14 8 14M5 17h14"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          Visualizar Ruta
-        </button>
         <button
           class="btn-primary"
           [disabled]="!selectedOriginPort || !selectedDestinationPort"
@@ -1087,23 +1064,27 @@ export class PortSelectorComponent implements OnInit {
     }
   }
 
-  visualizeRoute(): void {
+  visualizeRoute(force: boolean = false): void {
+    // Compatibilidad: force ahora se interpreta como createAfter
+    const createAfter = !!force
     if (!this.selectedOriginPort || !this.selectedDestinationPort) {
       return
     }
 
+    const intermediatePortIds = this.selectedIntermediatePorts.map((port) => port.id)
     const intermediatePortNames = this.selectedIntermediatePorts.map((port) => port.name)
 
     console.log("Calculando ruta desde:", this.selectedOriginPort.name, "hasta:", this.selectedDestinationPort.name)
     console.log("Puertos intermedios:", intermediatePortNames)
 
     this.routeService
-      .calculateOptimalRoute(this.selectedOriginPort.name, this.selectedDestinationPort.name, intermediatePortNames)
+      .calculateOptimalRoute(this.selectedOriginPort.id, this.selectedDestinationPort.id, intermediatePortIds)
       .subscribe({
         next: (routeData: RouteCalculationResource) => {
           console.log("Datos de ruta recibidos:", routeData)
           this.routeData = routeData
           this.showRouteVisualization = true
+          if (createAfter) this.finalizeCreateRoute()
         },
         error: (err: Error) => {
           console.error("Error al calcular la ruta:", err)
@@ -1112,8 +1093,22 @@ export class PortSelectorComponent implements OnInit {
             this.selectedDestinationPort?.coordinates,
           )
           this.showRouteVisualization = true
+          if (createAfter) this.finalizeCreateRoute()
         },
       })
+  }
+
+  private finalizeCreateRoute(): void {
+    // Simula el comportamiento previo: marcar como creada y mostrar modal
+    setTimeout(() => {
+      console.log("Ruta creada con éxito")
+      this.routeCreated = true
+      this.showModal(
+        "success",
+        "Ruta Creada",
+        "La ruta ha sido creada con éxito. Ahora puede generar un reporte detallado.",
+      )
+    }, 500)
   }
 
   selectIntermediatePort(port: Port): void {
@@ -1242,7 +1237,7 @@ export class PortSelectorComponent implements OnInit {
     }
 
     if (!this.routeData) {
-      this.visualizeRoute()
+      this.visualizeRoute(true)
       return
     }
 

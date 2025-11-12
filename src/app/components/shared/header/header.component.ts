@@ -14,7 +14,11 @@ import { SurveyModalComponent } from "../survey-modal/survey-modal.component"
     <header class="header">
       <div class="header-content">
         <div class="header-left">
-          <h1 class="page-title">{{ pageTitle }}</h1>
+          <div class="title-row">
+            <!-- Logo en data URI PNG (placeholder). Reemplazar por assets/logo.png si añades el archivo) -->
+            <img src="assets/Teemo-hongo-logo.png" alt="Logo" class="header-logo" />
+            <h1 class="page-title">{{ pageTitle }}</h1>
+          </div>
           <div class="breadcrumbs" *ngIf="breadcrumbs && breadcrumbs.length > 0">
             <a [routerLink]="['/dashboard']" class="breadcrumb-item">Dashboard</a>
             <span class="breadcrumb-separator">/</span>
@@ -195,6 +199,19 @@ import { SurveyModalComponent } from "../survey-modal/survey-modal.component"
       .header-left {
         display: flex;
         flex-direction: column;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .header-logo {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        display: block;
       }
 
       .page-title {

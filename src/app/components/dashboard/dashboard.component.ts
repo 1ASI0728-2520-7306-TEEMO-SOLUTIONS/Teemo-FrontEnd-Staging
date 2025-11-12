@@ -1,15 +1,11 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef } from "@angular/core"
+import { Component, OnInit, AfterViewInit, OnDestroy } from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { RouterModule } from "@angular/router"
 import { MapComponent } from "./map/map.component"
-import { RouteCardComponent } from "./route-card/route-card.component"
 import { PortSelectorComponent } from "./port-selector/port-selector.component"
 import { SidebarComponent } from "../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../shared/header/header.component"
-import { RouteAnimationComponent } from "./route-animation/route-animation.component"
 import { AnimationService } from "../../services/animation.service"
-import { PortService } from "../../services/port.service"
-import { RouteService } from "../../services/route.service"
 
 declare var VANTA: any
 
@@ -31,62 +27,16 @@ interface PopularRoute {
     CommonModule,
     RouterModule,
     MapComponent,
-    RouteCardComponent,
     PortSelectorComponent,
     SidebarComponent,
     HeaderComponent,
-    RouteAnimationComponent,
   ],
   template: `
     <!-- Splash Screen -->
     <div *ngIf="showSplash" class="splash-screen" [class.hidden]="splashHidden">
       <div class="splash-content">
         <div class="splash-logo">
-          <svg width="160" height="160" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Tallo más ancho y menos alto -->
-            <rect x="57" y="75" width="28" height="30" rx="8" fill="#f8fafc"/>
-
-            <!-- Sombrero principal agrandado -->
-            <path d="M25 55C25 30 70 20 70 20C70 20 115 30 115 55C115 80 70 75 70 75C70 75 25 80 25 55Z" fill="#0a6cbc"/>
-
-            <!-- Parte inferior del sombrero -->
-            <ellipse cx="70" cy="60" rx="45" ry="18" fill="#084e88"/>
-
-            <!-- Ojos con animación de brillo estelar -->
-            <g class="starry-eyes">
-              <!-- Ojo izquierdo -->
-              <circle class="eye-base" cx="50" cy="50" r="10" fill="#f8fafc"/>
-              <!-- Destellos ojo izquierdo -->
-              <g class="eye-sparkles">
-                <circle class="sparkle" cx="55" cy="45" r="2" fill="#ffffff"/>
-                <circle class="sparkle" cx="48" cy="53" r="1.5" fill="#ffffff"/>
-                <circle class="sparkle" cx="52" cy="55" r="1" fill="#ffffff"/>
-                <circle class="sparkle" cx="45" cy="48" r="1.2" fill="#ffffff"/>
-              </g>
-
-              <!-- Ojo derecho -->
-              <circle class="eye-base" cx="90" cy="50" r="10" fill="#f8fafc"/>
-              <!-- Destellos ojo derecho -->
-              <g class="eye-sparkles">
-                <circle class="sparkle" cx="95" cy="45" r="2" fill="#ffffff"/>
-                <circle class="sparkle" cx="88" cy="53" r="1.5" fill="#ffffff"/>
-                <circle class="sparkle" cx="92" cy="55" r="1" fill="#ffffff"/>
-                <circle class="sparkle" cx="85" cy="48" r="1.2" fill="#ffffff"/>
-              </g>
-            </g>
-
-            <!-- Pupilas fijas -->
-            <circle cx="50" cy="50" r="4" fill="#0a6cbc"/>
-            <circle cx="90" cy="50" r="4" fill="#0a6cbc"/>
-
-            <!-- Sonrisa -->
-
-            <!-- Manchas más grandes -->
-            <circle cx="40" cy="40" r="8" fill="#f8fafc"/>
-            <circle cx="70" cy="35" r="5" fill="#f8fafc"/>
-            <circle cx="100" cy="40" r="7" fill="#f8fafc"/>
-            <circle cx="60" cy="30" r="4" fill="#f8fafc"/>
-          </svg>
+          <img src="assets/Teemo-hongo-logo.png" alt="Teemo Logo" class="splash-image" />
         </div>
         <h1>MUSHROOM</h1>
       </div>
@@ -103,10 +53,10 @@ interface PopularRoute {
           pageTitle="Mushroom"
           [notificationCount]="3"
         >
-          <button class="btn-primary" (click)="togglePortSelector()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+          <button class="btn-primary btn-new-route" (click)="togglePortSelector()">
+            <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" fill="#10b981" />
+              <polygon points="10,8 17,12 10,16" fill="#ffffff" />
             </svg>
             {{ showPortSelector ? 'Cancelar Selección' : 'Nueva Ruta' }}
           </button>
@@ -152,20 +102,7 @@ interface PopularRoute {
               <div class="card-header">
                 <h2>Rutas Más Buscadas</h2>
                 <div class="card-actions">
-                  <button class="btn-outline btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Filtrar
-                  </button>
-                  <button class="btn-primary btn-sm" (click)="togglePortSelector()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Nueva Ruta
-                  </button>
+                  <!-- Botón 'Nueva Ruta' eliminado aquí porque ya existe en el header -->
                 </div>
               </div>
               <div class="routes-grid">
@@ -284,6 +221,31 @@ interface PopularRoute {
       /* Animación de brillo estelar */
       .starry-eyes {
         transform-origin: center;
+      }
+
+      /* Estilo para la imagen del splash */
+      .splash-image {
+        width: 200px;
+        height: 200px;
+        object-fit: contain;
+        display: inline-block;
+        border-radius: 12px;
+      }
+
+      .splash-image:hover {
+        transform: scale(1.03);
+      }
+
+      /* Ajuste para pantallas grandes */
+      @media (min-width: 1200px) {
+        .splash-image {
+          width: 210px;
+          height: 210px;
+        }
+
+        .splash-content h1 {
+          font-size: 3.5rem;
+        }
       }
 
       .eye-base {
@@ -659,6 +621,33 @@ interface PopularRoute {
         margin-right: 0.5rem;
       }
 
+      /* Estilos para destacar el botón Nueva Ruta */
+      .play-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-right: 0.5rem;
+      }
+
+      .btn-new-route {
+        background-color: #10b981; /* verde */
+        border: none;
+        color: white;
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18), 0 2px 6px rgba(0,0,0,0.08);
+        transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+      }
+
+      .btn-new-route:hover {
+        transform: translateY(-2px);
+        background-color: #0fb06f;
+        box-shadow: 0 10px 24px rgba(16, 185, 129, 0.22);
+      }
+
+      .btn-new-route:active {
+        transform: translateY(0);
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.14);
+      }
+
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -770,9 +759,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private animationService: AnimationService,
-    private portService: PortService,
-    private routeService: RouteService,
-    private elementRef: ElementRef,
   ) {}
 
   ngOnInit(): void {
@@ -898,9 +884,5 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.preselectedOrigin = null
     this.preselectedDestination = null
     this.autoVisualize = false
-  }
-
-  logout(): void {
-    window.location.href = "/dashboard"
   }
 }

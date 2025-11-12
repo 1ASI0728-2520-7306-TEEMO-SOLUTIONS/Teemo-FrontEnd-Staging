@@ -397,7 +397,8 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        margin-bottom: 1.5rem;
+        margin: 0 auto 1.5rem;
+        width: min(1400px, calc(100% - 3rem));
       }
 
       .card-header {
@@ -517,6 +518,13 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
         flex: 1;
         overflow-y: auto;
         padding: 0.5rem 0;
+      }
+
+      @media (max-width: 768px) {
+        .port-selector-container {
+          width: 100%;
+          margin: 0 0 1.5rem;
+        }
       }
 
       .port-item {

@@ -106,23 +106,22 @@ export class RouteService {
     endPortId: string,
     intermediatePortIds: string[] = [],
   ): Observable<RouteCalculationResource> {
+    const payload = {
+      startPortId,
+      endPortId,
+      intermediatePortIds: intermediatePortIds ?? [],
+    }
+
+    console.log("Parámetros de la solicitud:", payload)
+
     let params = new HttpParams().set("startPortId", startPortId).set("endPortId", endPortId)
 
     if (intermediatePortIds && intermediatePortIds.length > 0) {
-      const intermediatePortIdsString = intermediatePortIds.join(",")
-      params = params.set("intermediatePortIds", intermediatePortIdsString)
-
-      console.log("Enviando puertos intermedios (IDs):", intermediatePortIdsString)
+      params = params.set("intermediatePortIds", intermediatePortIds.join(","))
     }
 
-    console.log("Parámetros de la solicitud:", {
-      startPortId,
-      endPortId,
-      intermediatePortIds: intermediatePortIds.length > 0 ? intermediatePortIds : "ninguno",
-    })
-
     return this.http
-      .post<RouteCalculationResource>(`${this.apiUrl}/calculate-optimal-route`, null, { params })
+      .post<RouteCalculationResource>(`${this.apiUrl}/calculate-optimal-route`, payload, { params })
       .pipe(catchError(this.handleError))
   }
 

@@ -1,16 +1,15 @@
 import { Injectable } from "@angular/core"
 import { HttpClient } from "@angular/common/http"
 import { Observable, of } from "rxjs"
-import { catchError } from "rxjs/operators"
+import { catchError, map } from "rxjs/operators"
 import { environment } from "../../environments/environment"
 
 export interface NearbyPort {
-  id: number
+  id: string
   name: string
   country: string
   latitude: number
   longitude: number
-  distance: number
   status: "open" | "closed"
   facilities: string[]
   maxDepth: number
@@ -25,35 +24,67 @@ export interface NearbyPort {
   providedIn: "root",
 })
 export class NearbyPortService {
-  private apiUrl = `${environment.apiUrl}/api/v1`
+  private platformApiUrl = `${environment.apiUrl}/api/v1`
+  private publicPortsApiUrl = "https://freetestapi.com/api/v1/ports"
 
   constructor(private http: HttpClient) {}
 
-  getCurrentLocation(): Observable<{ latitude: number; longitude: number }> {
-    // En una aplicación real, esto podría obtener la ubicación del GPS o de un servicio de rastreo
-    // Para este ejemplo, devolvemos una ubicación fija o simulada
-    return of({ latitude: 1.29027, longitude: 103.851959 }) // Singapore como ubicación predeterminada
+  /**
+   * Try to fetch nearby ports from our platform API first.
+   * If it fails (RBAC restrictions, feature not ready, etc.) fall back to the public dataset.
+   */
+  getNearbyPorts(vesselId: string): Observable<NearbyPort[]> {
+    return this.http.get<NearbyPort[]>(`${this.platformApiUrl}/vessels/${vesselId}/nearby-ports`).pipe(
+      catchError((error) => {
+        console.error("Error al obtener puertos cercanos en la plataforma:", error)
+        return this.fetchPublicPorts()
+      }),
+    )
   }
 
-  getNearbyPorts(vesselId: string): Observable<NearbyPort[]> {
-    return this.http.get<NearbyPort[]>(`${this.apiUrl}/vessels/${vesselId}/nearby-ports`).pipe(
+  /**
+   * Consume the public dataset at freetestapi.com and normalise the payload.
+   */
+  fetchPublicPorts(): Observable<NearbyPort[]> {
+    return this.http.get<any[]>(this.publicPortsApiUrl).pipe(
+      map((ports) => this.mapPublicPorts(ports)),
       catchError((error) => {
-        console.error("Error al obtener puertos cercanos:", error)
-        // Devolver datos de ejemplo en caso de error
+        console.error("No se pudo consultar la API pública de puertos:", error)
         return of(this.getFallbackNearbyPorts())
       }),
     )
   }
 
+  private mapPublicPorts(ports: any[]): NearbyPort[] {
+    if (!Array.isArray(ports)) return this.getFallbackNearbyPorts()
+
+    return ports.map((port, index) => ({
+      id: String(port.id ?? port.code ?? index + 1),
+      name: port.name ?? `Puerto ${index + 1}`,
+      country: port.country ?? port.city ?? "N/D",
+      latitude: Number(port.latitude ?? port.lat ?? port.coordinates?.latitude ?? 0),
+      longitude: Number(port.longitude ?? port.lon ?? port.coordinates?.longitude ?? 0),
+      status: String(port.status ?? "open").toLowerCase().includes("clos") ? "closed" : "open",
+      facilities: Array.isArray(port.facilities)
+        ? port.facilities
+        : (port.services?.split(",").map((service: string) => service.trim()).filter(Boolean) ?? ["Supplies"]),
+      maxDepth: Number(port.max_depth ?? port.depth ?? 12),
+      contactInfo: {
+        phone: port.contact?.phone ?? port.phone ?? "N/D",
+        email: port.contact?.email ?? port.email ?? "N/D",
+        vhfChannel: port.contact?.vhf ?? port.vhf ?? "16",
+      },
+    }))
+  }
+
   private getFallbackNearbyPorts(): NearbyPort[] {
     return [
       {
-        id: 1,
+        id: "1",
         name: "Puerto de Singapore",
         country: "Asia",
         latitude: 1.29027,
         longitude: 103.851959,
-        distance: 0,
         status: "open",
         facilities: ["Fuel", "Repairs", "Medical", "Supplies"],
         maxDepth: 15,
@@ -64,12 +95,11 @@ export class NearbyPortService {
         },
       },
       {
-        id: 2,
+        id: "2",
         name: "Puerto de Johor",
         country: "Asia",
         latitude: 1.4655,
         longitude: 103.7578,
-        distance: 25.3,
         status: "open",
         facilities: ["Fuel", "Supplies"],
         maxDepth: 12,
@@ -80,12 +110,11 @@ export class NearbyPortService {
         },
       },
       {
-        id: 3,
+        id: "3",
         name: "Puerto de Batam",
         country: "Asia",
         latitude: 1.1301,
         longitude: 104.0529,
-        distance: 32.7,
         status: "closed",
         facilities: ["Repairs", "Supplies"],
         maxDepth: 10,
@@ -96,12 +125,11 @@ export class NearbyPortService {
         },
       },
       {
-        id: 4,
+        id: "4",
         name: "Puerto de Bintan",
         country: "Asia",
         latitude: 1.0619,
         longitude: 104.4165,
-        distance: 45.8,
         status: "open",
         facilities: ["Fuel", "Customs"],
         maxDepth: 14,
@@ -112,12 +140,11 @@ export class NearbyPortService {
         },
       },
       {
-        id: 5,
+        id: "5",
         name: "Puerto de Kuala Lumpur",
         country: "Asia",
         latitude: 3.0738,
         longitude: 101.6881,
-        distance: 180.2,
         status: "open",
         facilities: ["Fuel", "Repairs", "Medical", "Supplies", "Customs"],
         maxDepth: 18,

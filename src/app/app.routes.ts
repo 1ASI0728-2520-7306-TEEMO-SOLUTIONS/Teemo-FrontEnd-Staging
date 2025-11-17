@@ -27,7 +27,7 @@ export const routes: Routes = [
   {
     path: "route-history",
     loadComponent: () =>
-      import("./components/reports/route-history/route-history.component").then((m) => m.RouteHistoryComponent),
+      import("./components/reports/route-history").then((m) => m.RouteHistoryComponent),
     canActivate: [AuthGuard],
   },
   {

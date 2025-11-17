@@ -1,0 +1,254 @@
+﻿<div class="app-shell">
+  <app-sidebar [currentUser]="sidebarUser"></app-sidebar>
+
+  <div class="page-body">
+    <app-header
+      pageTitle="Historial de Rutas"
+      [breadcrumbs]="[{ label: 'Reportes', link: '/shipment-reports' }, { label: 'Historial' }]"
+    >
+      <button class="btn ghost" type="button" (click)="refresh()">
+        <span>Actualizar</span>
+      </button>
+    </app-header>
+
+    <main class="history-wrapper">
+      <section class="filters-card">
+        <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+          <div class="filters-header">
+            <div>
+              <h2>Filtros</h2>
+              <p>Combina criterios para encontrar cálculos específicos.</p>
+            </div>
+            <div class="filters-actions">
+              <button type="button" class="btn ghost" (click)="resetFilters()">Restablecer</button>
+              <button type="submit" class="btn primary">Aplicar</button>
+            </div>
+          </div>
+
+          <div class="filter-grid">
+            <label class="filter-field">
+              <span>Desde</span>
+              <input type="date" formControlName="from" />
+            </label>
+
+            <label class="filter-field">
+              <span>Hasta</span>
+              <input type="date" formControlName="to" />
+            </label>
+
+            <label class="filter-field">
+              <span>Estado</span>
+              <select formControlName="status">
+                <option value="">Todos</option>
+                <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>Origen de solicitud</span>
+              <select formControlName="source">
+                <option value="">Todos</option>
+                <option *ngFor="let source of sourceOptions" [value]="source">{{ source }}</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>ID de ruta</span>
+              <input type="text" formControlName="routeId" placeholder="UUID o identificador interno" />
+            </label>
+
+            <label class="filter-field">
+              <span>Archivo</span>
+              <select formControlName="archived">
+                <option value="false">Activas</option>
+                <option value="true">Archivadas</option>
+                <option value="all">Todas</option>
+              </select>
+            </label>
+
+            <label class="filter-field" *ngIf="canFilterByUser">
+              <span>User ID</span>
+              <input type="text" formControlName="userId" placeholder="Filtrar por usuario del tenant" />
+            </label>
+
+            <label class="filter-field">
+              <span>Tamaño de página</span>
+              <select formControlName="size" (change)="onPageSizeChange()">
+                <option *ngFor="let size of pageSizes" [value]="size">{{ size }} items</option>
+              </select>
+            </label>
+          </div>
+        </form>
+      </section>
+
+      <section class="history-content">
+        <article class="history-list">
+          <header>
+            <div>
+              <h2>Resultados</h2>
+              <p *ngIf="!loadingList">{{ pagination.totalElements }} coincidencias · página {{ pagination.page + 1 }} de {{ pagination.totalPages || 1 }}</p>
+            </div>
+            <div class="telemetry" *ngIf="telemetryCount !== null">
+              <span>Telemetría</span>
+              <strong>{{ telemetryCount }} consultas registradas</strong>
+            </div>
+          </header>
+
+          <div *ngIf="errorMessage" class="alert danger">
+            {{ errorMessage }}
+          </div>
+
+          <div *ngIf="!errorMessage && !loadingList && routeHistory.length === 0" class="empty-state">
+            <h3>No se encontraron registros</h3>
+            <p>Intenta ajustar la fecha, estado o ID de ruta.</p>
+          </div>
+
+          <div *ngIf="loadingList" class="loading-block">
+            <div class="spinner"></div>
+            <p>Cargando historial...</p>
+          </div>
+
+          <ul class="history-list-items" *ngIf="!loadingList && routeHistory.length > 0">
+            <li
+              *ngFor="let item of routeHistory; trackBy: trackByHistoryId"
+              (click)="selectHistoryItem(item)"
+              [class.selected]="selectedItem?.id === item.id"
+            >
+              <div class="item-row">
+                <div>
+                  <h3>{{ routeLabel(item) }}</h3>
+                  <p>Calculado {{ formatDateTime(item.computedAt) }}</p>
+                </div>
+                <div class="badges">
+                  <span class="badge" [class.badge-success]="item.status === 'SUCCESS'" [class.badge-warn]="item.status === 'NO_VIABLE_ROUTE'" [class.badge-error]="item.status === 'CANCELLED'">
+                    {{ item.status }}
+                  </span>
+                  <span class="badge secondary">{{ item.source }}</span>
+                  <span class="badge neutral" *ngIf="item.archived">Archivado</span>
+                </div>
+              </div>
+              <div class="meta-row">
+                <span>Distancia: {{ formatDistance(item.totalDistance) }}</span>
+                <span>Duración: {{ formatDuration(item.durationEstimate) }}</span>
+                <span>Costo: {{ formatCost(item.costEstimate) }}</span>
+              </div>
+              <div class="chips" *ngIf="item.avoidedPortIds?.length">
+                <span>Puertos evitados:</span>
+                <span class="chip" *ngFor="let port of item.avoidedPortIds">{{ resolvePortName(port) }}</span>
+              </div>
+            </li>
+          </ul>
+
+          <footer class="list-footer" *ngIf="routeHistory.length > 0">
+            <div class="pagination">
+              <button class="btn ghost" type="button" (click)="changePage(-1)" [disabled]="pagination.page === 0 || loadingList">Anterior</button>
+              <span>Página {{ pagination.page + 1 }} / {{ pagination.totalPages || 1 }}</span>
+              <button class="btn ghost" type="button" (click)="changePage(1)" [disabled]="pagination.page + 1 >= pagination.totalPages || loadingList">Siguiente</button>
+            </div>
+            <div class="cursor-hint" *ngIf="nextCursorHint">
+              <small>Siguiente cursor: {{ nextCursorHint }}</small>
+            </div>
+          </footer>
+        </article>
+
+        <article class="history-detail">
+          <ng-container *ngIf="selectedItem as item; else emptyDetail">
+            <header>
+              <div>
+                <p>ID {{ item.id }}</p>
+                <h3>{{ routeLabel(item) }}</h3>
+                <p class="muted">Solicitado por {{ item.userId }}</p>
+              </div>
+              <div class="detail-actions">
+                <button class="btn ghost" type="button" (click)="clearSelection()">Limpiar selección</button>
+                <button class="btn danger" type="button" *ngIf="canArchiveSelected()" (click)="openArchiveDialog()" [disabled]="archiving">
+                  Archivar
+                </button>
+              </div>
+            </header>
+
+            <div class="map-section" *ngIf="hasGeometry(item)">
+              <div class="map-header">
+                <h4>Recorrido</h4>
+                <span *ngIf="item.pathEncoding && !item.geojson">Generado desde path encoding</span>
+              </div>
+              <div #mapContainer class="map-container"></div>
+            </div>
+
+            <div class="detail-grid">
+              <div>
+                <h4>Totales</h4>
+                <ul>
+                  <li><span>Distancia</span> <strong>{{ formatDistance(item.totalDistance) }}</strong></li>
+                  <li><span>Duración estimada</span> <strong>{{ formatDuration(item.durationEstimate) }}</strong></li>
+                  <li><span>Costo estimado</span> <strong>{{ formatCost(item.costEstimate) }}</strong></li>
+                </ul>
+              </div>
+              <div>
+                <h4>Metadata</h4>
+                <ul>
+                  <li><span>Motor</span> <strong>{{ item.engineVersion || 'N/D' }}</strong></li>
+                  <li><span>Fuente</span> <strong>{{ item.source }}</strong></li>
+                  <li><span>Estado</span> <strong>{{ item.status }}</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="detail-section" *ngIf="item.notes">
+              <h4>Notas</h4>
+              <p>{{ item.notes }}</p>
+            </div>
+
+            <div class="detail-section" *ngIf="item.metadata">
+              <h4>Metadata</h4>
+              <pre>{{ item.metadata | json }}</pre>
+            </div>
+
+            <div class="detail-section" *ngIf="item.waypointPortIds?.length">
+              <h4>Waypoints</h4>
+              <div class="chips">
+                <span class="chip" *ngFor="let waypoint of item.waypointPortIds">{{ resolvePortName(waypoint) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" *ngIf="item.avoidedPortIds?.length">
+              <h4>Puertos evitados</h4>
+              <div class="chips">
+                <span class="chip warn" *ngFor="let port of item.avoidedPortIds">{{ resolvePortName(port) }}</span>
+              </div>
+            </div>
+
+            <div class="alert danger" *ngIf="detailError">
+              {{ detailError }}
+            </div>
+
+            <section class="archive-dialog" *ngIf="showArchiveDialog">
+              <h4>Archivar cálculo</h4>
+              <p>Esta acción requiere rol de Operador o Admin. Opcionalmente deja una nota.</p>
+              <textarea
+                rows="3"
+                name="archiveNotes"
+                [(ngModel)]="archiveNotes"
+                placeholder="Motivo del archivado (opcional)"
+              ></textarea>
+              <div class="dialog-actions">
+                <button class="btn ghost" type="button" (click)="closeArchiveDialog()" [disabled]="archiving">Cancelar</button>
+                <button class="btn danger" type="button" (click)="archiveSelected()" [disabled]="archiving">
+                  {{ archiving ? 'Archivando...' : 'Confirmar' }}
+                </button>
+              </div>
+              <div class="alert danger" *ngIf="archiveError">{{ archiveError }}</div>
+            </section>
+          </ng-container>
+
+          <ng-template #emptyDetail>
+            <div class="empty-detail">
+              <h3>Selecciona un cálculo</h3>
+              <p>El panel mostrará el detalle, metadata y trazado una vez elijas un registro.</p>
+            </div>
+          </ng-template>
+        </article>
+      </section>
+    </main>
+  </div>
+</div>

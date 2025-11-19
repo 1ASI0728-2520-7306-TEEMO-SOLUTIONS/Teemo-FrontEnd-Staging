@@ -10,7 +10,7 @@ import { PortService, Port } from "../../../services/port.service"
   template: `
     <div class="map-container scale-in" style="position:relative">
       <div class="map-header">
-        <h3 style="padding-left: 5rem; margin: 0;">Mapa de Puertos Maritimos</h3>
+        <h3 style="margin: 0;">Mapa de Puertos Maritimos</h3>
         <div class="map-controls">
           <button class="map-btn" (click)="zoomIn()">Zoom In</button>
           <button class="map-btn" (click)="zoomOut()">Zoom Out</button>
@@ -26,10 +26,16 @@ import { PortService, Port } from "../../../services/port.service"
       .map-container {
         overflow: hidden;
         position: relative;
-        margin: 0 calc(-50vw + 50%) 0 calc(-50vw + 50%);
+        margin: 0;
         height: auto;
-        width: 100vw;
-        left: calc(-50vw + 50%);
+        width: 100%;
+        left: 0;
+        z-index: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+        border-bottom-left-radius: 18px;
+        border-bottom-right-radius: 18px;
+        background: #fff;
       }
 
       .map-header {
@@ -39,9 +45,7 @@ import { PortService, Port } from "../../../services/port.service"
         background-color: #ffffff;
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #e8eaed;
-        margin: 0 calc(-50vw + 50%);
-        padding-left: calc(1.5rem + (50vw - 50%));
-        padding-right: calc(1.5rem + (50vw - 50%));
+        margin: 0;
       }
 
       .map-header h3 {
@@ -73,6 +77,9 @@ import { PortService, Port } from "../../../services/port.service"
       .map-canvas {
         height: 70vh;
         width: 100%;
+        border-bottom-left-radius: 18px;
+        border-bottom-right-radius: 18px;
+        overflow: hidden;
       }
     `,
   ],
@@ -120,6 +127,8 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.map = L.map(container, {
       zoomControl: false,
       attributionControl: false,
+      minZoom: 2,
+      worldCopyJump: true,
     }).setView(this.defaultCenter, this.defaultZoom)
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -227,7 +236,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         height: auto !important;
         border-radius: 0 !important;
         margin-bottom: 1.5rem !important;

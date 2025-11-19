@@ -1,4 +1,5 @@
-Ôªø<div class="app-shell">
+<div class="app-shell">
+  <div id="history-vanta-background" class="vanta-background"></div>
   <app-sidebar [currentUser]="sidebarUser"></app-sidebar>
 
   <div class="page-body">
@@ -17,7 +18,7 @@
           <div class="filters-header">
             <div>
               <h2>Filtros</h2>
-              <p>Combina criterios para encontrar c√°lculos espec√≠ficos.</p>
+              <p>Combina criterios para encontrar c·lculos especÌficos.</p>
             </div>
             <div class="filters-actions">
               <button type="button" class="btn ghost" (click)="resetFilters()">Restablecer</button>
@@ -72,7 +73,7 @@
             </label>
 
             <label class="filter-field">
-              <span>Tama√±o de p√°gina</span>
+              <span>TamaÒo de p·gina</span>
               <select formControlName="size" (change)="onPageSizeChange()">
                 <option *ngFor="let size of pageSizes" [value]="size">{{ size }} items</option>
               </select>
@@ -86,10 +87,10 @@
           <header>
             <div>
               <h2>Resultados</h2>
-              <p *ngIf="!loadingList">{{ pagination.totalElements }} coincidencias ¬∑ p√°gina {{ pagination.page + 1 }} de {{ pagination.totalPages || 1 }}</p>
+              <p *ngIf="!loadingList">{{ pagination.totalElements }} coincidencias ∑ p·gina {{ pagination.page + 1 }} de {{ pagination.totalPages || 1 }}</p>
             </div>
             <div class="telemetry" *ngIf="telemetryCount !== null">
-              <span>Telemetr√≠a</span>
+              <span>TelemetrÌa</span>
               <strong>{{ telemetryCount }} consultas registradas</strong>
             </div>
           </header>
@@ -129,7 +130,7 @@
               </div>
               <div class="meta-row">
                 <span>Distancia: {{ formatDistance(item.totalDistance) }}</span>
-                <span>Duraci√≥n: {{ formatDuration(item.durationEstimate) }}</span>
+                <span>DuraciÛn: {{ formatDuration(item.durationEstimate) }}</span>
                 <span>Costo: {{ formatCost(item.costEstimate) }}</span>
               </div>
               <div class="chips" *ngIf="item.avoidedPortIds?.length">
@@ -142,7 +143,7 @@
           <footer class="list-footer" *ngIf="routeHistory.length > 0">
             <div class="pagination">
               <button class="btn ghost" type="button" (click)="changePage(-1)" [disabled]="pagination.page === 0 || loadingList">Anterior</button>
-              <span>P√°gina {{ pagination.page + 1 }} / {{ pagination.totalPages || 1 }}</span>
+              <span>P·gina {{ pagination.page + 1 }} / {{ pagination.totalPages || 1 }}</span>
               <button class="btn ghost" type="button" (click)="changePage(1)" [disabled]="pagination.page + 1 >= pagination.totalPages || loadingList">Siguiente</button>
             </div>
             <div class="cursor-hint" *ngIf="nextCursorHint">
@@ -160,7 +161,7 @@
                 <p class="muted">Solicitado por {{ item.userId }}</p>
               </div>
               <div class="detail-actions">
-                <button class="btn ghost" type="button" (click)="clearSelection()">Limpiar selecci√≥n</button>
+                <button class="btn ghost" type="button" (click)="clearSelection()">Limpiar selecciÛn</button>
                 <button class="btn danger" type="button" *ngIf="canArchiveSelected()" (click)="openArchiveDialog()" [disabled]="archiving">
                   Archivar
                 </button>
@@ -180,7 +181,7 @@
                 <h4>Totales</h4>
                 <ul>
                   <li><span>Distancia</span> <strong>{{ formatDistance(item.totalDistance) }}</strong></li>
-                  <li><span>Duraci√≥n estimada</span> <strong>{{ formatDuration(item.durationEstimate) }}</strong></li>
+                  <li><span>DuraciÛn estimada</span> <strong>{{ formatDuration(item.durationEstimate) }}</strong></li>
                   <li><span>Costo estimado</span> <strong>{{ formatCost(item.costEstimate) }}</strong></li>
                 </ul>
               </div>
@@ -223,8 +224,8 @@
             </div>
 
             <section class="archive-dialog" *ngIf="showArchiveDialog">
-              <h4>Archivar c√°lculo</h4>
-              <p>Esta acci√≥n requiere rol de Operador o Admin. Opcionalmente deja una nota.</p>
+              <h4>Archivar c·lculo</h4>
+              <p>Esta acciÛn requiere rol de Operador o Admin. Opcionalmente deja una nota.</p>
               <textarea
                 rows="3"
                 name="archiveNotes"
@@ -243,8 +244,8 @@
 
           <ng-template #emptyDetail>
             <div class="empty-detail">
-              <h3>Selecciona un c√°lculo</h3>
-              <p>El panel mostrar√° el detalle, metadata y trazado una vez elijas un registro.</p>
+              <h3>Selecciona un c·lculo</h3>
+              <p>El panel mostrar· el detalle, metadata y trazado una vez elijas un registro.</p>
             </div>
           </ng-template>
         </article>
@@ -252,3 +253,4 @@
     </main>
   </div>
 </div>
+

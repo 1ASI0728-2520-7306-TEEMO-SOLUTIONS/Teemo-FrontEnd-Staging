@@ -22,6 +22,8 @@ import { AuthService, User } from '../../../services/auth.service'
 import { GoogleAnalyticsService } from '../../../services/google-analytics.service'
 import { PortService, type Port } from '../../../services/port.service'
 
+declare const VANTA: any
+
 interface PaginationState {
   page: number
   size: number
@@ -69,6 +71,7 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private tileLayer?: L.TileLayer
   private viewInitialized = false
   private portNameMap = new Map<string, string>()
+  private vantaEffect: any = null
 
   constructor(
     private routeHistoryService: RouteHistoryService,
@@ -109,10 +112,12 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.selectedItem) {
       setTimeout(() => this.renderMap(), 0)
     }
+    setTimeout(() => this.initVanta(), 0)
   }
 
   ngOnDestroy(): void {
     this.destroyMap()
+    this.destroyVanta()
   }
 
   get canFilterByUser(): boolean {
@@ -479,6 +484,37 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.routeLayer = undefined
       this.geoLayer = undefined
       this.tileLayer = undefined
+    }
+  }
+
+  private initVanta(): void {
+    if (this.vantaEffect) return
+    if (typeof window === 'undefined') return
+    if (typeof VANTA === 'undefined' || !VANTA.WAVES) return
+
+    const target = document.getElementById('history-vanta-background')
+    if (!target) return
+
+    this.vantaEffect = VANTA.WAVES({
+      el: target,
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.0,
+      minWidth: 200.0,
+      scale: 1.0,
+      scaleMobile: 1.0,
+      color: 0x759298,
+      shininess: 18.0,
+      waveHeight: 40.0,
+      zoom: 0.65,
+    })
+  }
+
+  private destroyVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
     }
   }
 

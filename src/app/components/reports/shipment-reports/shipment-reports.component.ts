@@ -1,4 +1,4 @@
-import { Component, type OnInit } from "@angular/core"
+import { Component, type OnInit, AfterViewInit, OnDestroy } from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { RouterModule } from "@angular/router"
 import { FormsModule } from "@angular/forms"
@@ -6,12 +6,15 @@ import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 import { ReportService, ShipmentReport } from "../../../services/report.service"
 
+declare const VANTA: any
+
 @Component({
   selector: "app-shipment-reports",
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, SidebarComponent, HeaderComponent],
   template: `
     <div class="app-container">
+      <div id="reports-vanta-background" class="vanta-background"></div>
       <app-sidebar [currentUser]="currentUser"></app-sidebar>
 
       <div class="main-content">
@@ -218,21 +221,30 @@ import { ReportService, ShipmentReport } from "../../../services/report.service"
   styles: [
     `
 
-    .app-container {
-      display: flex;
-      min-height: 100vh;
-      background-color: #f8fafc;
-    }
-
-    .main-content {
-      flex: 1;
-      margin-left: 80px;
-      transition: margin-left 250ms ease;
-
-      &.sidebar-expanded {
-        margin-left: 260px;
+      .app-container {
+        display: flex;
+        min-height: 100vh;
+        position: relative;
       }
-    }
+
+      .vanta-background {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .main-content {
+        flex: 1;
+        margin-left: 80px;
+        transition: margin-left 250ms ease;
+        background: transparent;
+        position: relative;
+        z-index: 1;
+
+        &.sidebar-expanded {
+          margin-left: 260px;
+        }
+      }
 
     .reports-content {
       padding: 2rem;
@@ -691,13 +703,15 @@ import { ReportService, ShipmentReport } from "../../../services/report.service"
   `,
   ],
 })
-export class ShipmentReportsComponent implements OnInit {
+export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   reports: ShipmentReport[] = []
   filteredReports: ShipmentReport[] = []
   selectedReport: ShipmentReport | null = null
   loading = true
   searchTerm = ""
   downloading = false
+
+  private vantaEffect: any = null
 
   currentUser = {
     name: "Usuario Demo",
@@ -708,6 +722,14 @@ export class ShipmentReportsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadReports()
+  }
+
+  ngAfterViewInit(): void {
+    setTimeout(() => this.initVanta(), 0)
+  }
+
+  ngOnDestroy(): void {
+    this.destroyVanta()
   }
 
   loadReports(): void {
@@ -765,5 +787,36 @@ export class ShipmentReportsComponent implements OnInit {
       month: "2-digit",
       year: "numeric",
     })
+  }
+
+  private initVanta(): void {
+    if (this.vantaEffect) return
+    if (typeof window === "undefined") return
+    if (typeof VANTA === "undefined" || !VANTA.WAVES) return
+
+    const target = document.getElementById("reports-vanta-background")
+    if (!target) return
+
+    this.vantaEffect = VANTA.WAVES({
+      el: target,
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.0,
+      minWidth: 200.0,
+      scale: 1.0,
+      scaleMobile: 1.0,
+      color: 0x759298,
+      shininess: 18.0,
+      waveHeight: 40.0,
+      zoom: 0.65,
+    })
+  }
+
+  private destroyVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
   }
 }

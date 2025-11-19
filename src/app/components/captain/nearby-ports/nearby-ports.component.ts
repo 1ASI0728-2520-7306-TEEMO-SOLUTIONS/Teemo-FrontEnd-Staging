@@ -8,29 +8,22 @@ import { NearbyPortService, NearbyPort } from "../../../services/nearby-port.ser
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 
+declare const VANTA: any
+
 @Component({
   selector: "app-nearby-ports",
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, SidebarComponent, HeaderComponent],
   template: `
     <div class="app-container">
+      <div id="nearby-vanta-background" class="vanta-background"></div>
       <app-sidebar [currentUser]="currentUser"></app-sidebar>
 
       <div class="main-content">
         <app-header
           pageTitle="Información de Puertos"
           [notificationCount]="1"
-        >
-          <button class="btn-primary" type="button" (click)="reload()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10"></path>
-              <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14"></path>
-            </svg>
-            Sincronizar
-          </button>
-        </app-header>
+        ></app-header>
 
         <main class="nearby-ports-content">
           <div class="nearby-ports-grid">
@@ -38,7 +31,6 @@ import { HeaderComponent } from "../../shared/header/header.component"
               <div class="map-header">
                 <div>
                   <h2>Mapa de Puertos</h2>
-                  <p *ngIf="!loading">{{ filteredPorts.length }} puertos visibles</p>
                 </div>
                 <div class="status-pill" [class.status-open]="statusFilter === 'open'" [class.status-closed]="statusFilter === 'closed'">
                   <span *ngIf="statusFilter === 'all'">Todos</span>
@@ -182,15 +174,23 @@ import { HeaderComponent } from "../../shared/header/header.component"
       .app-container {
         display: flex;
         min-height: 100vh;
-        background: #f5f7fb;
+        position: relative;
+      }
+
+      .vanta-background {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
       }
 
       .main-content {
         flex: 1;
         margin-left: 80px;
         transition: margin-left 250ms ease;
-        background: #f5f7fb;
+        background: transparent;
         min-height: 100vh;
+        position: relative;
+        z-index: 1;
       }
 
       .nearby-ports-content {
@@ -211,6 +211,12 @@ import { HeaderComponent } from "../../shared/header/header.component"
         padding: 1.5rem;
       }
 
+      .map-container {
+        position: relative;
+        overflow: hidden;
+        z-index: 0;
+      }
+
       .map-header {
         display: flex;
         justify-content: space-between;
@@ -220,9 +226,20 @@ import { HeaderComponent } from "../../shared/header/header.component"
 
       .map-canvas {
         width: 100%;
-        height: 340px;
+        height: 420px;
         border-radius: 1rem;
         border: 1px solid #e0e7ff;
+        position: relative;
+        z-index: 0;
+      }
+
+      .nearby-port-icon .port-icon {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #1a73e8;
+        border: 2px solid #fff;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.35);
       }
 
       .status-pill {
@@ -521,6 +538,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
   private map?: L.Map
   private portMarkers: L.Marker[] = []
   private viewReady = false
+  private vantaEffect: any = null
 
   constructor(private nearbyPortService: NearbyPortService) {}
 
@@ -530,6 +548,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.viewReady = true
+    setTimeout(() => this.initVanta(), 0)
     if (!this.loading) {
       setTimeout(() => this.initMap(), 100)
     }
@@ -540,10 +559,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.map) {
       this.map.remove()
     }
-  }
-
-  reload(): void {
-    this.loadPorts(true)
+    this.destroyVanta()
   }
 
   setStatusFilter(filter: "all" | "open" | "closed"): void {
@@ -638,9 +654,17 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!this.filteredPorts.length) return
 
+    const icon = L.divIcon({
+      className: "nearby-port-icon",
+      html: `<div class="port-icon" title=""></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
+    })
+
     this.filteredPorts.forEach((port) => {
       const marker = L.marker([port.latitude, port.longitude], {
         title: port.name,
+        icon,
       }).addTo(this.map!)
 
       marker.bindPopup(`
@@ -672,5 +696,36 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private isValidCoordinate(lat: number, lon: number): boolean {
     return Number.isFinite(lat) && Number.isFinite(lon) && lat !== 0 && lon !== 0
+  }
+
+  private initVanta(): void {
+    if (this.vantaEffect) return
+    if (typeof window === "undefined") return
+    if (typeof VANTA === "undefined" || !VANTA.WAVES) return
+
+    const target = document.getElementById("nearby-vanta-background")
+    if (!target) return
+
+    this.vantaEffect = VANTA.WAVES({
+      el: target,
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.0,
+      minWidth: 200.0,
+      scale: 1.0,
+      scaleMobile: 1.0,
+      color: 0x759298,
+      shininess: 18.0,
+      waveHeight: 40.0,
+      zoom: 0.65,
+    })
+  }
+
+  private destroyVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
   }
 }

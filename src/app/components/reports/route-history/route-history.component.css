@@ -1,22 +1,32 @@
-﻿:host,
+:host,
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background-color: #f5f7fb;
   color: #1f2937;
+  position: relative;
+  background: transparent;
 }
+
+.vanta-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+
+
 
 .page-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f7fb;
+  background: transparent;
   margin-left: 80px;
   padding: 1.5rem;
   padding-top: calc(70px + 1.5rem);
   transition: margin-left 250ms ease;
 }
+
 
 .history-wrapper {
   display: flex;
@@ -427,10 +437,17 @@
 
 @media (max-width: 768px) {
   .page-body {
-    margin-left: 0;
-    padding: 1rem;
-    padding-top: calc(70px + 1rem);
-  }
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: transparent;
+  margin-left: 80px;
+  padding: 1.5rem;
+  padding-top: calc(70px + 1.5rem);
+  transition: margin-left 250ms ease;
+}
+
 
   .filters-header,
   .history-list header,
@@ -451,3 +468,4 @@
     transform: rotate(360deg);
   }
 }
+

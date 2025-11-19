@@ -39,6 +39,35 @@ interface GeoJSONData {
   features: GeoJSONFeature[]
 }
 
+interface SafeCorridor {
+  name: string
+  bounds: {
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+  }
+}
+
+const SAFE_CORRIDORS: SafeCorridor[] = [
+  {
+    name: "Canal de Suez",
+    bounds: { minLat: 28.0, maxLat: 31.5, minLng: 31.0, maxLng: 34.0 },
+  },
+  {
+    name: "Bab el-Mandeb",
+    bounds: { minLat: 11.0, maxLat: 14.0, minLng: 42.5, maxLng: 45.5 },
+  },
+  {
+    name: "Estrecho de Gibraltar",
+    bounds: { minLat: 34.5, maxLat: 37.0, minLng: -7.0, maxLng: -4.0 },
+  },
+  {
+    name: "Canal de Panamá",
+    bounds: { minLat: 8.0, maxLat: 10.5, minLng: -80.5, maxLng: -78.5 },
+  },
+]
+
 // Interfaz para representar un segmento de línea
 interface LineSegment {
   start: { lat: number; lng: number }
@@ -1457,6 +1486,32 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     return bestCurve.points
   }
 
+  private isPointWithinSafeCorridor(lat: number, lng: number): boolean {
+    const normalizedLng = this.normalizeLongitude(lng)
+    return SAFE_CORRIDORS.some(
+      (corridor) =>
+        lat >= corridor.bounds.minLat &&
+        lat <= corridor.bounds.maxLat &&
+        normalizedLng >= corridor.bounds.minLng &&
+        normalizedLng <= corridor.bounds.maxLng,
+    )
+  }
+
+  private segmentWithinSafeCorridor(
+    point1: { lat: number; lng: number },
+    point2: { lat: number; lng: number },
+  ): boolean {
+    if (this.isPointWithinSafeCorridor(point1.lat, point1.lng) || this.isPointWithinSafeCorridor(point2.lat, point2.lng)) {
+      return true
+    }
+
+    const midPoint = {
+      lat: (point1.lat + point2.lat) / 2,
+      lng: this.normalizeLongitude((point1.lng + point2.lng) / 2),
+    }
+    return this.isPointWithinSafeCorridor(midPoint.lat, midPoint.lng)
+  }
+
   private doesLineIntersectLandPrecise(
     start: PortCoordinates, // Las coordenadas pueden estar desenrolladas si vienen de un segmento de curva
     end: PortCoordinates, // Las coordenadas pueden estar desenrolladas
@@ -1502,6 +1557,11 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       const currentLng_unwrapped = start.longitude + t * actualDeltaLng
       const p2_normalized = { lat: currentLat, lng: this.normalizeLongitude(currentLng_unwrapped) }
 
+      if (this.segmentWithinSafeCorridor(p1_normalized, p2_normalized)) {
+        p1_normalized = p2_normalized
+        continue
+      }
+
       if (this.doesSegmentIntersectLand(p1_normalized, p2_normalized)) {
         console.log(
           `Intersección en doesLineIntersectLandPrecise: sub-segmento ${JSON.stringify(p1_normalized)} -> ${JSON.stringify(p2_normalized)} cruza tierra.`,
@@ -1518,6 +1578,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     point1: { lat: number; lng: number },
     point2: { lat: number; lng: number },
   ): boolean {
+    if (this.segmentWithinSafeCorridor(point1, point2)) {
+      return false
+    }
+
     if (!this.geoJsonData) return false
 
     // Verificar si alguno de los puntos está en tierra
@@ -1620,6 +1684,18 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
         intersections: currentIntersections,
         absDirection: Math.abs(dir),
       })
+    }
+
+    const zeroIntersectionCandidate = candidates.find((candidate) => candidate.intersections === 0)
+    if (zeroIntersectionCandidate) {
+      console.log(
+        `findBestCurveDirection: Se encontró una curva sin intersecciones (dirección ${zeroIntersectionCandidate.direction}).`,
+      )
+      return {
+        direction: zeroIntersectionCandidate.direction,
+        points: zeroIntersectionCandidate.points,
+        intersections: zeroIntersectionCandidate.intersections,
+      }
     }
 
     // Ordenar los candidatos
@@ -1771,6 +1847,15 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       const segmentStart: PortCoordinates = { latitude: p1_unwrapped.lat, longitude: p1_unwrapped.lng }
       const segmentEnd: PortCoordinates = { latitude: p2_unwrapped.lat, longitude: p2_unwrapped.lng }
 
+      if (
+        this.segmentWithinSafeCorridor(
+          { lat: segmentStart.latitude, lng: segmentStart.longitude },
+          { lat: segmentEnd.latitude, lng: segmentEnd.longitude },
+        )
+      ) {
+        continue
+      }
+
       // Usar un número pequeño de subsegmentos para doesLineIntersectLandPrecise,
       // ya que el segmento de la curva generado por createCurveWithDirection ya es corto.
       // Un valor como 5-10 debería ser suficiente.
@@ -1806,6 +1891,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private isPointOnLand(lat: number, lng: number): boolean {
+    if (this.isPointWithinSafeCorridor(lat, lng)) {
+      return false
+    }
+
     if (!this.geoJsonData) return false
 
     // Verificar si el punto está dentro de algún polígono de tierra

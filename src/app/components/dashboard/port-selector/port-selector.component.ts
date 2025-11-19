@@ -1113,11 +1113,6 @@ export class PortSelectorComponent implements OnInit {
     setTimeout(() => {
       console.log("Ruta creada con éxito")
       this.routeCreated = true
-      this.showModal(
-        "success",
-        "Ruta Creada",
-        "La ruta ha sido creada con éxito. Ahora puede generar un reporte detallado.",
-      )
     }, 500)
   }
 
@@ -1254,11 +1249,6 @@ export class PortSelectorComponent implements OnInit {
     setTimeout(() => {
       console.log("Ruta creada con éxito")
       this.routeCreated = true
-      this.showModal(
-        "success",
-        "Ruta Creada",
-        "La ruta ha sido creada con éxito. Ahora puede generar un reporte detallado.",
-      )
     }, 500)
   }
 

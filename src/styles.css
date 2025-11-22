@@ -51,3 +51,140 @@
 .port-closed {
   background-color: #ea4335;
 }
+.dark-mode .header,
+.dark-mode .map-header,
+.dark-mode .reports-list-container,
+.dark-mode .report-details-container,
+.dark-mode .routes-container,
+.dark-mode .filters-card,
+.dark-mode .history-list,
+.dark-mode .history-detail,
+.dark-mode .map-container,
+.dark-mode .content-container,
+.dark-mode .ports-list-container,
+.dark-mode .port-details-container,
+.dark-mode .notifications-panel,
+.dark-mode .nearby-ports-content .map-container,
+.dark-mode .nearby-ports-content .content-container,
+.dark-mode .configuration-modal,
+.dark-mode .survey-modal {
+  background: rgba(12, 20, 37, 0.92);
+  color: #e2e8f0;
+  border-color: #1f2a3a !important;
+}
+
+.dark-mode .map-container,
+.dark-mode .routes-container,
+.dark-mode .reports-list-container,
+.dark-mode .report-details-container,
+.dark-mode .history-list,
+.dark-mode .history-detail,
+.dark-mode .ports-list-container,
+.dark-mode .port-details-container {
+  box-shadow: 0 20px 40px rgba(3, 8, 20, 0.65);
+}
+
+.dark-mode .header,
+.dark-mode .map-header {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .page-title,
+.dark-mode .breadcrumb-item,
+.dark-mode .nav-text,
+.dark-mode .map-header h2,
+.dark-mode .card-header h2,
+.dark-mode .card-header p,
+.dark-mode .port-details-header h2 {
+  color: #f8fafc !important;
+}
+
+.dark-mode .sidebar {
+  background: rgba(6, 12, 24, 0.96);
+  border-right: 1px solid #1f2a3a;
+}
+
+.dark-mode .sidebar .nav-item {
+  color: #cbd5f5;
+}
+
+.dark-mode .sidebar .nav-item.active,
+.dark-mode .sidebar .nav-item:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #f8fafc;
+}
+
+.dark-mode .map-btn,
+.dark-mode .action-btn,
+.dark-mode .theme-btn,
+.dark-mode .logout-btn,
+.dark-mode .btn {
+  background: rgba(15, 118, 198, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #e2e8f0;
+}
+
+.dark-mode .map-btn.primary,
+.dark-mode .btn.primary {
+  background: #0ea5e9;
+  border-color: #38bdf8;
+  color: #020617;
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background: rgba(8, 17, 31, 0.75);
+  border: 1px solid #1f2a3a;
+  color: #e2e8f0;
+}
+
+.dark-mode .status-pill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+}
+
+.dark-mode .status-pill.status-open {
+  background: rgba(16, 185, 129, 0.25);
+  color: #bbf7d0;
+}
+
+.dark-mode .status-pill.status-closed {
+  background: rgba(248, 113, 113, 0.25);
+  color: #fecaca;
+}
+
+.dark-mode .notification-item,
+.dark-mode .notification-content,
+.dark-mode .notification-icon,
+.dark-mode .survey-notification {
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.dark-mode .notification-item + .notification-item {
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .map-canvas,
+.dark-mode #map {
+  background: #020617;
+}
+
+.dark-mode .telemetry,
+.dark-mode .history-list header p,
+.dark-mode .history-detail header p,
+.dark-mode .ports-list-header p,
+.dark-mode .map-header p {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .btn.ghost {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.dark-mode .alert.danger {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}

@@ -7,6 +7,7 @@ import { Subscription } from "rxjs"
 import { NearbyPortService, NearbyPort } from "../../../services/nearby-port.service"
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
+import { ThemeService } from "../../../services/theme.service"
 
 declare const VANTA: any
 
@@ -516,6 +517,63 @@ declare const VANTA: any
           transform: rotate(360deg);
         }
       }
+
+      :host-context(.dark-mode) .map-container,
+      :host-context(.dark-mode) .content-container,
+      :host-context(.dark-mode) .ports-list-container,
+      :host-context(.dark-mode) .port-details-container {
+        background: rgba(5, 12, 24, 0.94);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.7);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .map-header h2,
+      :host-context(.dark-mode) .ports-list-header h2,
+      :host-context(.dark-mode) .port-details-header h2 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .ports-list-header p,
+      :host-context(.dark-mode) .status-pill,
+      :host-context(.dark-mode) .port-meta,
+      :host-context(.dark-mode) .detail-label {
+        color: #a5b4fc;
+      }
+
+      :host-context(.dark-mode) .status-pill {
+        background: rgba(56, 189, 248, 0.15);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+      }
+
+      :host-context(.dark-mode) .status-pill.status-open {
+        background: rgba(16, 185, 129, 0.2);
+        color: #bbf7d0;
+      }
+
+      :host-context(.dark-mode) .status-pill.status-closed {
+        background: rgba(248, 113, 113, 0.2);
+        color: #fecaca;
+      }
+
+      :host-context(.dark-mode) input,
+      :host-context(.dark-mode) select,
+      :host-context(.dark-mode) textarea {
+        background: rgba(8, 17, 31, 0.85);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .port-item {
+        background: rgba(8, 18, 40, 0.85);
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .port-item.selected {
+        border-color: rgba(59, 130, 246, 0.45);
+        background: rgba(14, 23, 45, 0.95);
+      }
     `,
   ],
 })
@@ -539,10 +597,19 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
   private portMarkers: L.Marker[] = []
   private viewReady = false
   private vantaEffect: any = null
+  private isDarkMode = false
 
-  constructor(private nearbyPortService: NearbyPortService) {}
+  constructor(private nearbyPortService: NearbyPortService, private themeService: ThemeService) {}
 
   ngOnInit(): void {
+    this.subscriptions.add(
+      this.themeService.isDarkMode$.subscribe((isDark) => {
+        this.isDarkMode = isDark
+        if (this.vantaEffect) {
+          this.rebuildVanta()
+        }
+      }),
+    )
     this.loadPorts()
   }
 
@@ -715,11 +782,23 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
       minWidth: 200.0,
       scale: 1.0,
       scaleMobile: 1.0,
-      color: 0x759298,
+      color: this.getVantaColor(),
       shininess: 18.0,
       waveHeight: 40.0,
       zoom: 0.65,
     })
+  }
+
+  private rebuildVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
+    this.initVanta()
+  }
+
+  private getVantaColor(): number {
+    return this.isDarkMode ? 0x4f4f4f : 0x759298
   }
 
   private destroyVanta(): void {

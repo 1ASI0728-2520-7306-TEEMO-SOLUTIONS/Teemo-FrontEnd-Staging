@@ -600,6 +600,60 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
           right: -1rem;
         }
       }
+
+      :host-context(.dark-mode) .header {
+        background: rgba(6, 12, 24, 0.92);
+        border-color: rgba(148, 163, 184, 0.2);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .page-title,
+      :host-context(.dark-mode) .breadcrumb-item,
+      :host-context(.dark-mode) .breadcrumb-separator {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .header-logo {
+        filter: drop-shadow(0 2px 6px rgba(15, 118, 198, 0.5));
+      }
+
+      :host-context(.dark-mode) .notification-badge {
+        background: #f97316;
+        color: #020617;
+      }
+
+      :host-context(.dark-mode) .action-btn,
+      :host-context(.dark-mode) .logout-btn,
+      :host-context(.dark-mode) .theme-btn {
+        background: rgba(14, 165, 233, 0.12);
+        border: 1px solid rgba(125, 211, 252, 0.35);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .theme-toggle .theme-btn svg {
+        stroke: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .notifications-panel {
+        background: rgba(15, 23, 42, 0.96);
+        border-color: rgba(148, 163, 184, 0.2);
+        color: #e2e8f0;
+        box-shadow: 0 20px 45px rgba(2, 6, 23, 0.7);
+      }
+
+      :host-context(.dark-mode) .notification-item + .notification-item {
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+
+      :host-context(.dark-mode) .btn-survey {
+        background: #0ea5e9;
+        color: #020617;
+      }
+
+      :host-context(.dark-mode) .btn-dismiss {
+        color: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.25);
+      }
     `,
   ],
 })

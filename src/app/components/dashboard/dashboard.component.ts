@@ -6,6 +6,8 @@ import { PortSelectorComponent } from "./port-selector/port-selector.component"
 import { SidebarComponent } from "../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../shared/header/header.component"
 import { AnimationService } from "../../services/animation.service"
+import { ThemeService } from "../../services/theme.service"
+import { Subscription } from "rxjs"
 
 declare var VANTA: any
 
@@ -648,6 +650,54 @@ interface PopularRoute {
         box-shadow: 0 6px 18px rgba(16, 185, 129, 0.14);
       }
 
+      :host-context(.dark-mode) .routes-container {
+        background: rgba(4, 10, 22, 0.92);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.7);
+      }
+
+      :host-context(.dark-mode) .card-header {
+        background: transparent;
+        border-bottom-color: rgba(148, 163, 184, 0.2);
+      }
+
+      :host-context(.dark-mode) .card-header h2 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .routes-grid {
+        background: transparent;
+      }
+
+      :host-context(.dark-mode) .popular-route-card {
+        background: rgba(8, 17, 35, 0.95);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        box-shadow: 0 16px 40px rgba(2, 6, 23, 0.65);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .popular-route-card:hover {
+        border-color: rgba(59, 130, 246, 0.45);
+      }
+
+      :host-context(.dark-mode) .route-name,
+      :host-context(.dark-mode) .route-path .port,
+      :host-context(.dark-mode) .route-stats .stat-label,
+      :host-context(.dark-mode) .route-stats .stat-value {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .popularity-badge {
+        background: rgba(14, 165, 233, 0.2);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .btn-route-select {
+        background: rgba(14, 165, 233, 0.18);
+        color: #f8fafc;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+      }
+
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -756,12 +806,22 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Vanta.js effect
   private vantaEffect: any = null
+  private themeSub?: Subscription
+  private isDarkMode = false
 
   constructor(
     private animationService: AnimationService,
+    private themeService: ThemeService,
   ) {}
 
   ngOnInit(): void {
+    this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
+      this.isDarkMode = isDark
+      if (this.vantaEffect) {
+        this.rebuildVantaBackground()
+      }
+    })
+
     // Check if sidebar state is saved
     const savedState = localStorage.getItem("sidebar_collapsed")
     if (savedState) {
@@ -830,6 +890,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.themeSub?.unsubscribe()
     // Clean up Vanta effect
     if (this.vantaEffect) {
       this.vantaEffect.destroy()
@@ -849,13 +910,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           minWidth: 200.0,
           scale: 1.0,
           scaleMobile: 1.0,
-          color: 0x759298,
+          color: this.getVantaColor(),
           shininess: 18.0,
           waveHeight: 40.0,
           zoom: 0.65,
         })
       }
     }
+  }
+
+  private rebuildVantaBackground(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
+    this.initVanta()
+  }
+
+  private getVantaColor(): number {
+    return this.isDarkMode ? 0x232331 : 0x759298
   }
 
   togglePortSelector(): void {

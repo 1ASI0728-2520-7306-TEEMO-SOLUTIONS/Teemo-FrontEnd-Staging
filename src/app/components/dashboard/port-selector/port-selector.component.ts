@@ -908,6 +908,149 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
           flex-shrink: 0;
         }
       }
+
+      :host-context(.dark-mode) .port-selector-container {
+        background-color: rgba(4, 13, 27, 0.96);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.8);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .card-header,
+      :host-context(.dark-mode) .intermediate-ports-section,
+      :host-context(.dark-mode) .route-visualization-section,
+      :host-context(.dark-mode) .action-buttons {
+        border-color: rgba(59, 130, 246, 0.25);
+      }
+
+      :host-context(.dark-mode) .card-header h2,
+      :host-context(.dark-mode) .port-selection-section h3,
+      :host-context(.dark-mode) .intermediate-ports-section h3,
+      :host-context(.dark-mode) .route-visualization-section h3 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .section-description,
+      :host-context(.dark-mode) .port-continent,
+      :host-context(.dark-mode) .loading-container,
+      :host-context(.dark-mode) .empty-state {
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .search-input {
+        background-color: rgba(5, 12, 24, 0.9);
+        border-color: rgba(59, 130, 246, 0.35);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .search-input:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+      }
+
+      :host-context(.dark-mode) .port-list-container,
+      :host-context(.dark-mode) .selected-ports,
+      :host-context(.dark-mode) .route-summary {
+        background-color: rgba(8, 17, 31, 0.85);
+        border-color: rgba(59, 130, 246, 0.25);
+      }
+
+      :host-context(.dark-mode) .port-list-header {
+        background-color: rgba(2, 8, 23, 0.85);
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .port-item {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .port-item:hover:not(.disabled) {
+        background-color: rgba(56, 189, 248, 0.12);
+      }
+
+      :host-context(.dark-mode) .port-item.selected {
+        background-color: rgba(56, 189, 248, 0.2);
+      }
+
+      :host-context(.dark-mode) .port-icon {
+        color: #38bdf8;
+      }
+
+      :host-context(.dark-mode) .selected-port-item {
+        background-color: rgba(8, 64, 124, 0.85);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .action-buttons {
+        background-color: rgba(3, 8, 20, 0.85);
+      }
+
+      :host-context(.dark-mode) .btn-outline {
+        border-color: rgba(148, 163, 184, 0.45);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .btn-outline:hover {
+        background-color: rgba(15, 23, 42, 0.9);
+        border-color: rgba(148, 163, 184, 0.7);
+      }
+
+      :host-context(.dark-mode) .btn-secondary {
+        background-color: rgba(15, 23, 42, 0.85);
+        color: #f8fafc;
+        border-color: rgba(59, 130, 246, 0.35);
+      }
+
+      :host-context(.dark-mode) .btn-secondary:hover {
+        background-color: rgba(30, 41, 59, 0.9);
+      }
+
+      :host-context(.dark-mode) .btn-primary {
+        background-color: #38bdf8;
+        color: #04121f;
+      }
+
+      :host-context(.dark-mode) .btn-primary:hover {
+        background-color: #0ea5e9;
+      }
+
+      :host-context(.dark-mode) .modal-container {
+        background-color: rgba(4, 10, 24, 0.98);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        box-shadow: 0 30px 65px rgba(2, 6, 23, 0.85);
+      }
+
+      :host-context(.dark-mode) .modal-header {
+        border-color: rgba(59, 130, 246, 0.2);
+      }
+
+      :host-context(.dark-mode) .modal-header.success {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+      }
+
+      :host-context(.dark-mode) .modal-header.error {
+        background-color: rgba(248, 113, 113, 0.2);
+        color: #fecaca;
+      }
+
+      :host-context(.dark-mode) .modal-body {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .modal-footer {
+        border-color: rgba(59, 130, 246, 0.2);
+      }
+
+      :host-context(.dark-mode) .btn-success {
+        background-color: #22d3ee;
+        color: #052030;
+      }
+
+      :host-context(.dark-mode) .btn-success:hover {
+        background-color: #06b6d4;
+      }
     `,
   ],
 })

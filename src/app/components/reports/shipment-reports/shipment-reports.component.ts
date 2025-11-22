@@ -5,6 +5,8 @@ import { FormsModule } from "@angular/forms"
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 import { ReportService, ShipmentReport } from "../../../services/report.service"
+import { ThemeService } from "../../../services/theme.service"
+import { Subscription } from "rxjs"
 
 declare const VANTA: any
 
@@ -697,10 +699,57 @@ declare const VANTA: any
       }
     }
 
-    .mr-2 {
-      margin-right: 0.5rem;
-    }
-  `,
+      .mr-2 {
+        margin-right: 0.5rem;
+      }
+
+      :host-context(.dark-mode) .reports-list-container,
+      :host-context(.dark-mode) .report-details-container,
+      :host-context(.dark-mode) .no-report-selected {
+        background: rgba(4, 10, 22, 0.94);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.7);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .card-header {
+        background: transparent;
+        border-bottom-color: rgba(148, 163, 184, 0.2);
+      }
+
+      :host-context(.dark-mode) .card-header h2,
+      :host-context(.dark-mode) .report-section h3,
+      :host-context(.dark-mode) .info-label,
+      :host-context(.dark-mode) .info-value,
+      :host-context(.dark-mode) .report-route,
+      :host-context(.dark-mode) .report-id {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .report-item {
+        background: rgba(8, 17, 35, 0.9);
+        border-color: rgba(148, 163, 184, 0.15);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .report-item.selected {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(14, 23, 45, 0.95);
+      }
+
+      :host-context(.dark-mode) input,
+      :host-context(.dark-mode) select,
+      :host-context(.dark-mode) textarea {
+        background: rgba(8, 17, 31, 0.85);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .btn-primary {
+        background: #0ea5e9;
+        color: #020617;
+      }
+    `,
   ],
 })
 export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -712,15 +761,23 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
   downloading = false
 
   private vantaEffect: any = null
+  private themeSub?: Subscription
+  private isDarkMode = false
 
   currentUser = {
     name: "Usuario Demo",
     role: "Capitán",
   }
 
-  constructor(private reportService: ReportService) {}
+  constructor(private reportService: ReportService, private themeService: ThemeService) {}
 
   ngOnInit(): void {
+    this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
+      this.isDarkMode = isDark
+      if (this.vantaEffect) {
+        this.rebuildVanta()
+      }
+    })
     this.loadReports()
   }
 
@@ -729,6 +786,7 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   ngOnDestroy(): void {
+    this.themeSub?.unsubscribe()
     this.destroyVanta()
   }
 
@@ -806,11 +864,23 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
       minWidth: 200.0,
       scale: 1.0,
       scaleMobile: 1.0,
-      color: 0x759298,
+      color: this.getVantaColor(),
       shininess: 18.0,
       waveHeight: 40.0,
       zoom: 0.65,
     })
+  }
+
+  private rebuildVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
+    this.initVanta()
+  }
+
+  private getVantaColor(): number {
+    return this.isDarkMode ? 0x4f4f4f : 0x759298
   }
 
   private destroyVanta(): void {

@@ -254,6 +254,54 @@ import { filter } from "rxjs"
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
+      :host-context(.dark-mode) .sidebar {
+        background: rgba(4, 10, 22, 0.95);
+        border-right: 1px solid rgba(30, 41, 59, 0.85);
+        box-shadow: none;
+      }
+
+      :host-context(.dark-mode) .sidebar-header {
+        border-bottom-color: rgba(30, 41, 59, 0.85);
+      }
+
+      :host-context(.dark-mode) .logo-text {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .collapse-btn {
+        background: rgba(100, 116, 139, 0.2);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .nav-item {
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .nav-item:hover {
+        background: rgba(56, 189, 248, 0.12);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .nav-item.active {
+        background: rgba(14, 165, 233, 0.18);
+        color: #f8fafc;
+        border-left-color: #38bdf8;
+      }
+
+      :host-context(.dark-mode) .nav-icon {
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .sidebar-footer {
+        border-top-color: rgba(30, 41, 59, 0.85);
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .user-avatar {
+        background: rgba(59, 130, 246, 0.2);
+        color: #f8fafc;
+      }
     `,
   ],
 })

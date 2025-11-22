@@ -170,36 +170,7 @@ interface LineSegment {
         {{ recalculationErrorMessage }}
       </div>
 
-      <!-- Información de la Ruta -->
-      <div class="route-info" *ngIf="currentRouteData">
-        <div class="info-card">
-          <h4>Información de la Ruta</h4>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">Distancia Total:</span>
-              <span class="value">{{ currentRouteData?.totalDistance | number : "1.0-0" }} millas náuticas</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Puertos en la Ruta:</span>
-              <span class="value">{{ routePorts.length }}</span>
-            </div>
-            <div class="info-item" *ngIf="currentPortIndex >= 0 && routePorts[currentPortIndex]">
-              <span class="label">Puerto Actual:</span>
-              <span class="value">{{ routePorts[currentPortIndex].name }}</span>
-            </div>
-            <div class="info-item" *ngIf="currentPortIndex >= 0 && routePorts[currentPortIndex + 1]">
-              <span class="label">Próximo Puerto:</span>
-              <span class="value">{{ routePorts[currentPortIndex + 1].name }}</span>
-            </div>
-            <div class="info-item" *ngIf="geoJsonLoaded">
-              <span class="label">Detección de Tierra:</span>
-              <span class="value">✓ Activa ({{ geoJsonFeatureCount }} características)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Controles de Animación (movido debajo de Información de la Ruta) -->
+      <!-- Controles de Animación -->
       <div class="animation-controls">
         <div class="control-group">
           <button
@@ -604,51 +575,9 @@ interface LineSegment {
         }
       }
 
-      .route-info {
-        margin-bottom: 1rem;
-      }
-
-      .info-card {
-        background-color: #f8fafc;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        border: 1px solid #e2e8f0;
-
-        h4 {
-          margin: 0 0 0.75rem 0;
-          font-size: 1rem;
-          font-weight: 600;
-          color: #0f172a;
-        }
-      }
-
-      .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.75rem;
-      }
-
-      .info-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        .label {
-          font-size: 0.875rem;
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        .value {
-          font-size: 0.875rem;
-          color: #0f172a;
-          font-weight: 600;
-        }
-      }
-
       .map-container {
         position: relative;
-        height: 400px;
+        height: 520px;
         border-radius: 0.375rem;
         overflow: hidden;
         border: 1px solid #e2e8f0;
@@ -788,6 +717,136 @@ interface LineSegment {
         .ports-grid {
           grid-template-columns: 1fr;
         }
+      }
+
+      :host-context(.dark-mode) .route-animation-container {
+        background-color: rgba(4, 12, 24, 0.95);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        box-shadow: 0 30px 60px rgba(2, 6, 23, 0.75);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .animation-controls,
+      :host-context(.dark-mode) .alt-details {
+        background-color: rgba(8, 18, 40, 0.9);
+        border-color: rgba(59, 130, 246, 0.25);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .ports-list h4 {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .control-btn {
+        background-color: rgba(14, 165, 233, 0.18);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .control-btn:hover:not(:disabled) {
+        background-color: rgba(14, 165, 233, 0.35);
+      }
+
+      :host-context(.dark-mode) .control-btn.active {
+        background-color: rgba(248, 113, 113, 0.25);
+      }
+
+      :host-context(.dark-mode) .speed-control label,
+      :host-context(.dark-mode) .speed-value {
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .speed-slider {
+        background: rgba(59, 130, 246, 0.3);
+      }
+
+      :host-context(.dark-mode) .speed-slider::-webkit-slider-thumb,
+      :host-context(.dark-mode) .speed-slider::-moz-range-thumb {
+        background: #38bdf8;
+      }
+
+      :host-context(.dark-mode) .geojson-status {
+        background-color: rgba(251, 191, 36, 0.15);
+        border-color: rgba(251, 191, 36, 0.45);
+        color: #fef9c3;
+      }
+
+      :host-context(.dark-mode) .detail-btn {
+        background: rgba(8, 18, 40, 0.85);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .detail-btn:hover {
+        background: rgba(30, 41, 59, 0.95);
+      }
+
+      :host-context(.dark-mode) .alt-details {
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .alt-details .muted {
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .detection-item .label {
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .detection-item .value {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .map-container {
+        border-color: rgba(59, 130, 246, 0.3);
+        background: rgba(4, 10, 24, 0.95);
+      }
+
+      :host-context(.dark-mode) .ports-grid .port-item {
+        background-color: rgba(4, 12, 24, 0.85);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .ports-grid .port-item.pending {
+        background-color: rgba(15, 23, 42, 0.85);
+        border-color: rgba(148, 163, 184, 0.3);
+      }
+
+      :host-context(.dark-mode) .ports-grid .port-item.current {
+        background-color: rgba(14, 165, 233, 0.18);
+        border-color: rgba(56, 189, 248, 0.45);
+      }
+
+      :host-context(.dark-mode) .ports-grid .port-item.visited {
+        background-color: rgba(34, 197, 94, 0.2);
+        border-color: rgba(34, 197, 94, 0.45);
+      }
+
+      :host-context(.dark-mode) .port-name {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .port-coordinates {
+        color: #a5b4fc;
+      }
+
+      :host-context(.dark-mode) .port-number {
+        background-color: rgba(56, 189, 248, 0.15);
+        color: #bae6fd;
+      }
+
+      :host-context(.dark-mode) .port-item.current .port-number {
+        background-color: #38bdf8;
+        color: #04121f;
+      }
+
+      :host-context(.dark-mode) .port-item.visited .port-number {
+        background-color: #22c55e;
+        color: #022c22;
+      }
+
+      :host-context(.dark-mode) .status-icon.pending {
+        color: #94a3b8;
       }
     `,
   ],

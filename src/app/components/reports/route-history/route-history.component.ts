@@ -21,6 +21,8 @@ import {
 import { AuthService, User } from '../../../services/auth.service'
 import { GoogleAnalyticsService } from '../../../services/google-analytics.service'
 import { PortService, type Port } from '../../../services/port.service'
+import { ThemeService } from '../../../services/theme.service'
+import { Subscription } from 'rxjs'
 
 declare const VANTA: any
 
@@ -72,6 +74,8 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private viewInitialized = false
   private portNameMap = new Map<string, string>()
   private vantaEffect: any = null
+  private themeSub?: Subscription
+  private isDarkMode = false
 
   constructor(
     private routeHistoryService: RouteHistoryService,
@@ -79,6 +83,7 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
     private analytics: GoogleAnalyticsService,
     private portService: PortService,
     private fb: FormBuilder,
+    private themeService: ThemeService,
   ) {
     this.filterForm = this.fb.group({
       from: [''],
@@ -93,6 +98,13 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
+      this.isDarkMode = isDark
+      if (this.vantaEffect) {
+        this.rebuildVanta()
+      }
+    })
+
     this.currentUser = this.authService.currentUserValue
     this.sidebarUser = {
       name: this.currentUser?.name || this.currentUser?.username || 'Usuario',
@@ -116,6 +128,7 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.themeSub?.unsubscribe()
     this.destroyMap()
     this.destroyVanta()
   }
@@ -504,11 +517,23 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
       minWidth: 200.0,
       scale: 1.0,
       scaleMobile: 1.0,
-      color: 0x759298,
+      color: this.getVantaColor(),
       shininess: 18.0,
       waveHeight: 40.0,
       zoom: 0.65,
     })
+  }
+
+  private rebuildVanta(): void {
+    if (this.vantaEffect) {
+      this.vantaEffect.destroy()
+      this.vantaEffect = null
+    }
+    this.initVanta()
+  }
+
+  private getVantaColor(): number {
+    return this.isDarkMode ? 0x0c0c1d : 0x759298
   }
 
   private destroyVanta(): void {

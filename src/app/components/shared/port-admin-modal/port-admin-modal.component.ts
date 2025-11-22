@@ -133,24 +133,26 @@ interface ToastMessage {
                   <p *ngIf="!port.lastActionAt" class="muted">Sin registro</p>
                 </div>
               </td>
-              <td class="actions-cell">
-                <button
-                  *ngIf="!port.disabled"
-                  class="action-btn danger"
-                  (click)="requestDisable(port)"
-                  data-testid="disable-button"
-                >
-                  Deshabilitar
-                </button>
-                <button
-                  *ngIf="port.disabled"
-                  class="action-btn primary"
-                  (click)="enable(port)"
-                  [disabled]="actionInProgress"
-                  data-testid="enable-button"
-                >
-                  Habilitar
-                </button>
+              <td>
+                <div class="actions-cell">
+                  <button
+                    *ngIf="!port.disabled"
+                    class="action-btn danger"
+                    (click)="requestDisable(port)"
+                    data-testid="disable-button"
+                  >
+                    Deshabilitar
+                  </button>
+                  <button
+                    *ngIf="port.disabled"
+                    class="action-btn primary"
+                    (click)="enable(port)"
+                    [disabled]="actionInProgress"
+                    data-testid="enable-button"
+                  >
+                    Habilitar
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -215,12 +217,31 @@ interface ToastMessage {
         font-family: inherit;
       }
 
+      :host-context(.dark-mode) {
+        --pa-surface: rgba(4, 10, 24, 0.98);
+        --pa-surface-muted: rgba(8, 18, 40, 0.92);
+        --pa-surface-alt: rgba(15, 23, 42, 0.85);
+        --pa-border: rgba(59, 130, 246, 0.35);
+        --pa-border-strong: rgba(59, 130, 246, 0.45);
+        --pa-text: #e2e8f0;
+        --pa-text-muted: #cbd5f5;
+        --pa-text-soft: #94a3b8;
+        --pa-primary: #38bdf8;
+        --pa-danger: #f87171;
+        --pa-success: #34d399;
+        color: var(--pa-text);
+      }
+
       .modal-backdrop {
         position: fixed;
         inset: 0;
         background: rgba(15, 23, 42, 0.35);
         backdrop-filter: blur(3px);
         z-index: 40;
+      }
+
+      :host-context(.dark-mode) .modal-backdrop {
+        background: rgba(2, 6, 23, 0.7);
       }
 
       .modal-panel {
@@ -239,6 +260,11 @@ interface ToastMessage {
         box-shadow: 0 30px 60px rgba(15, 23, 42, 0.18);
         overflow: auto;
         animation: fadeUp 0.18s ease-out;
+      }
+
+      :host-context(.dark-mode) .modal-panel {
+        border-color: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 40px 80px rgba(2, 6, 23, 0.85);
       }
 
       .modal-header {
@@ -394,6 +420,11 @@ interface ToastMessage {
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       }
 
+      :host-context(.dark-mode) .table-wrapper {
+        box-shadow: 0 30px 65px rgba(2, 6, 23, 0.8);
+        border-color: rgba(59, 130, 246, 0.4);
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -450,6 +481,18 @@ interface ToastMessage {
         border-color: rgba(239, 68, 68, 0.25);
       }
 
+      :host-context(.dark-mode) .status-chip {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.45);
+        color: #e0f2fe;
+      }
+
+      :host-context(.dark-mode) .status-chip.disabled {
+        background: rgba(248, 113, 113, 0.2);
+        border-color: rgba(248, 113, 113, 0.45);
+        color: #fecaca;
+      }
+
       .activity span,
       .activity p {
         margin: 0;
@@ -469,6 +512,8 @@ interface ToastMessage {
         justify-content: flex-end;
         gap: 0.5rem;
         align-items: center;
+        width: 100%;
+        min-height: 100%;
       }
 
       .action-btn {
@@ -496,6 +541,16 @@ interface ToastMessage {
         background: rgba(239, 68, 68, 0.18);
       }
 
+      :host-context(.dark-mode) .action-btn.danger {
+        background: rgba(248, 113, 113, 0.18);
+        border-color: rgba(248, 113, 113, 0.4);
+        color: #fecaca;
+      }
+
+      :host-context(.dark-mode) .action-btn.danger:hover {
+        background: rgba(248, 113, 113, 0.3);
+      }
+
       .action-btn.primary {
         background: var(--pa-primary);
         color: #ffffff;
@@ -508,10 +563,19 @@ interface ToastMessage {
         filter: brightness(1.03);
       }
 
+      :host-context(.dark-mode) .action-btn.primary {
+        color: #04121f;
+        box-shadow: 0 20px 40px rgba(14, 165, 233, 0.35);
+      }
+
       .action-btn.ghost {
         background: transparent;
         color: var(--pa-text-muted);
         border: 1px solid var(--pa-border);
+      }
+
+      :host-context(.dark-mode) .action-btn.ghost {
+        color: #cbd5f5;
       }
 
       .action-btn:disabled {
@@ -571,6 +635,10 @@ interface ToastMessage {
         border-color: rgba(239, 68, 68, 0.5);
       }
 
+      :host-context(.dark-mode) .toast {
+        box-shadow: 0 30px 60px rgba(2, 6, 23, 0.75);
+      }
+
       .error-banner {
         margin-top: 1rem;
         padding: 0.95rem 1.1rem;
@@ -578,6 +646,12 @@ interface ToastMessage {
         background: #fef2f2;
         color: #b91c1c;
         border: 1px solid rgba(239, 68, 68, 0.25);
+      }
+
+      :host-context(.dark-mode) .error-banner {
+        background: rgba(248, 113, 113, 0.18);
+        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.4);
       }
 
       .confirmation-panel {
@@ -590,6 +664,12 @@ interface ToastMessage {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
+      }
+
+      :host-context(.dark-mode) .confirmation-panel {
+        background: rgba(40, 10, 10, 0.85);
+        border-color: rgba(248, 113, 113, 0.45);
+        box-shadow: inset 0 1px 0 rgba(2, 6, 23, 0.45);
       }
 
       .confirmation-panel textarea {
@@ -609,6 +689,11 @@ interface ToastMessage {
       .confirmation-panel textarea:focus {
         outline: 2px solid rgba(239, 68, 68, 0.2);
         border-color: rgba(239, 68, 68, 0.4);
+      }
+
+      :host-context(.dark-mode) .confirmation-panel textarea:focus {
+        outline: 2px solid rgba(248, 113, 113, 0.35);
+        border-color: rgba(248, 113, 113, 0.5);
       }
 
       .confirmation-actions {

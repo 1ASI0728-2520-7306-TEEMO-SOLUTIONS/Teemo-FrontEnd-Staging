@@ -81,6 +81,35 @@ import { PortService, Port } from "../../../services/port.service"
         border-bottom-right-radius: 18px;
         overflow: hidden;
       }
+
+      :host-context(.dark-mode) .map-container {
+        background: rgba(4, 12, 24, 0.95);
+        border-color: rgba(148, 163, 184, 0.2);
+        box-shadow: 0 20px 40px rgba(2, 6, 23, 0.6);
+      }
+
+      :host-context(.dark-mode) .map-header {
+        background: transparent;
+        border-bottom-color: rgba(148, 163, 184, 0.2);
+      }
+
+      :host-context(.dark-mode) .map-header h3 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .map-btn {
+        background: rgba(14, 165, 233, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .map-btn:hover {
+        background: rgba(14, 165, 233, 0.25);
+      }
+
+      :host-context(.dark-mode) .map-canvas {
+        background: #01050f;
+      }
     `,
   ],
 })

@@ -13,7 +13,9 @@ export interface RouteHistoryItemResource {
   userId: string
   routeId?: string
   originPortId: string
+  originPortName?: string
   destinationPortId: string
+  destinationPortName?: string
   waypointPortIds?: string[]
   avoidedPortIds?: string[]
   computedAt: string

@@ -238,12 +238,15 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   routeLabel(item: RouteHistoryItemResource): string {
-    const origin = this.resolvePortName(item.originPortId)
-    const destination = this.resolvePortName(item.destinationPortId)
-    return `${origin} → ${destination}`
+    const origin = this.resolvePortName(item.originPortId, item.originPortName)
+    const destination = this.resolvePortName(item.destinationPortId, item.destinationPortName)
+    return `${origin} -> ${destination}`
   }
 
-  resolvePortName(portId?: string): string {
+  resolvePortName(portId?: string, fallbackName?: string): string {
+    if (fallbackName?.trim()) {
+      return fallbackName.trim()
+    }
     if (!portId) return 'N/D'
     return this.portNameMap.get(portId) ?? portId
   }
@@ -577,3 +580,4 @@ export class RouteHistoryComponent implements OnInit, AfterViewInit, OnDestroy {
     return coordinates
   }
 }
+

@@ -99,20 +99,50 @@ declare const VANTA: any
             <div class="report-details-container" *ngIf="selectedReport">
               <div class="card-header">
                 <h2>Detalles del Informe</h2>
-                <button class="download-btn" (click)="downloadReport(selectedReport.id)" [disabled]="downloading">
-                  <div class="btn-content" *ngIf="!downloading">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Descargar PDF
-                  </div>
-                  <div class="btn-loading" *ngIf="downloading">
-                    <div class="btn-spinner"></div>
-                    Generando...
-                  </div>
-                </button>
+                <div class="download-actions">
+                  <button
+                    class="download-btn"
+                    (click)="downloadReport(selectedReport.historyId || selectedReport.id, 'pdf')"
+                    [disabled]="downloading.pdf"
+                  >
+                    <div class="btn-content" *ngIf="!downloading.pdf">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      Descargar PDF
+                    </div>
+                    <div class="btn-loading" *ngIf="downloading.pdf">
+                      <div class="btn-spinner"></div>
+                      Generando...
+                    </div>
+                  </button>
+                  <button
+                    class="download-btn secondary"
+                    (click)="downloadReport(selectedReport.historyId || selectedReport.id, 'excel')"
+                    [disabled]="downloading.excel"
+                  >
+                    <div class="btn-content" *ngIf="!downloading.excel">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="M4 10h16"></path>
+                        <path d="M10 4v16"></path>
+                        <path d="m8 14 2 2 4-4"></path>
+                      </svg>
+                      Descargar Excel
+                    </div>
+                    <div class="btn-loading" *ngIf="downloading.excel">
+                      <div class="btn-spinner"></div>
+                      Generando...
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="download-alert" *ngIf="downloadMessage" [class.error]="downloadMessage.type === 'error'">
+                <strong>{{ downloadMessage.type === 'error' ? 'Error' : 'Descarga lista' }}:</strong>
+                <span>{{ downloadMessage.text }}</span>
               </div>
 
               <div class="report-details-content">
@@ -434,6 +464,12 @@ declare const VANTA: any
       font-weight: 500;
     }
 
+    .download-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
     .download-btn {
       display: inline-flex;
       align-items: center;
@@ -462,6 +498,18 @@ declare const VANTA: any
       }
     }
 
+    .download-btn.secondary {
+      background-color: #0f9d58;
+
+      &:hover {
+        background-color: #0c7a44;
+      }
+
+      &:disabled {
+        background-color: #7ac89d;
+      }
+    }
+
     .btn-content, .btn-loading {
       display: flex;
       align-items: center;
@@ -475,6 +523,25 @@ declare const VANTA: any
       border-radius: 50%;
       border-top-color: #ffffff;
       animation: spin 1s linear infinite;
+    }
+
+    .download-alert {
+      margin: 0.75rem 1.5rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(15, 118, 110, 0.3);
+      background: rgba(13, 148, 136, 0.08);
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #065f46;
+    }
+
+    .download-alert.error {
+      border-color: rgba(185, 28, 28, 0.3);
+      background: rgba(239, 68, 68, 0.08);
+      color: #b91c1c;
     }
 
     .report-details-content {
@@ -745,6 +812,32 @@ declare const VANTA: any
         color: #f8fafc;
       }
 
+      :host-context(.dark-mode) .download-actions {
+        gap: 0.5rem;
+      }
+
+      :host-context(.dark-mode) .download-btn {
+        background: #1d4ed8;
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .download-btn.secondary {
+        background: #059669;
+        color: #ecfdf5;
+      }
+
+      :host-context(.dark-mode) .download-alert {
+        border-color: rgba(56, 189, 248, 0.35);
+        background: rgba(15, 118, 110, 0.25);
+        color: #d1fae5;
+      }
+
+      :host-context(.dark-mode) .download-alert.error {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: rgba(127, 29, 29, 0.4);
+        color: #fecaca;
+      }
+
       :host-context(.dark-mode) .btn-primary {
         background: #0ea5e9;
         color: #020617;
@@ -758,11 +851,16 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
   selectedReport: ShipmentReport | null = null
   loading = true
   searchTerm = ""
-  downloading = false
+  downloading = {
+    pdf: false,
+    excel: false,
+  }
+  downloadMessage?: { type: "success" | "error"; text: string }
 
   private vantaEffect: any = null
   private themeSub?: Subscription
   private isDarkMode = false
+  private downloadMessageTimeout?: ReturnType<typeof setTimeout>
 
   currentUser = {
     name: "Usuario Demo",
@@ -788,6 +886,9 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
   ngOnDestroy(): void {
     this.themeSub?.unsubscribe()
     this.destroyVanta()
+    if (this.downloadMessageTimeout) {
+      clearTimeout(this.downloadMessageTimeout)
+    }
   }
 
   loadReports(): void {
@@ -821,19 +922,37 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
     this.selectedReport = report
   }
 
-  downloadReport(reportId: number): void {
-    if (this.downloading) return
+  downloadReport(reportRef: string | number | undefined, format: "pdf" | "excel"): void {
+    if (!reportRef || this.downloading[format]) {
+      if (!reportRef) {
+        this.showDownloadMessage("error", "No se pudo determinar el identificador del reporte.")
+      }
+      return
+    }
 
-    this.downloading = true
-    this.reportService.downloadReportPdf(reportId).subscribe({
-      next: () => {
-        // La descarga la maneja el servicio con jsPDF
-        this.downloading = false
+    this.setDownloading(format, true)
+    const resolvedId = String(reportRef)
+    this.reportService.downloadReport(resolvedId, format).subscribe({
+      next: (response) => {
+        this.setDownloading(format, false)
+        const blob = response.body
+        if (!blob) {
+          this.showDownloadMessage("error", "El archivo recibido está vacío.")
+          return
+        }
+        const filename = this.extractFilename(response.headers.get("Content-Disposition"), resolvedId, format)
+        this.triggerFileDownload(blob, filename)
+        this.showDownloadMessage("success", `Descarga ${format.toUpperCase()} lista para ${resolvedId}.`)
       },
       error: (err) => {
-        console.error("Error al descargar el informe:", err)
-        alert("Error al descargar el informe: " + err.message)
-        this.downloading = false
+        this.setDownloading(format, false)
+        let message = err?.message || "No se pudo descargar el informe."
+        if (err?.status === 404) {
+          message = "El reporte no existe o fue retirado."
+        } else if (err?.status === 403) {
+          message = "No tienes permisos para descargar este reporte."
+        }
+        this.showDownloadMessage("error", message)
       },
     })
   }
@@ -888,5 +1007,47 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
       this.vantaEffect.destroy()
       this.vantaEffect = null
     }
+  }
+
+  private setDownloading(format: "pdf" | "excel", value: boolean): void {
+    this.downloading = {
+      ...this.downloading,
+      [format]: value,
+    }
+  }
+
+  private extractFilename(disposition: string | null, reportId: string, format: "pdf" | "excel"): string {
+    if (disposition) {
+      const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i)
+      if (filenameMatch?.[1]) {
+        const raw = filenameMatch[1].trim().replace(/^[\"']|[\"']$/g, "")
+        try {
+          return decodeURIComponent(raw)
+        } catch {
+          return raw
+        }
+      }
+    }
+    const extension = format === "pdf" ? "pdf" : "xlsx"
+    return `route-report-${reportId}.${extension}`
+  }
+
+  private triggerFileDownload(blob: Blob, filename: string): void {
+    const blobUrl = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = blobUrl
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(blobUrl)
+  }
+
+  private showDownloadMessage(type: "success" | "error", text: string): void {
+    this.downloadMessage = { type, text }
+    if (this.downloadMessageTimeout) {
+      clearTimeout(this.downloadMessageTimeout)
+    }
+    this.downloadMessageTimeout = setTimeout(() => {
+      this.downloadMessage = undefined
+    }, 5000)
   }
 }

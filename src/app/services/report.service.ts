@@ -1,14 +1,12 @@
 import { Injectable } from "@angular/core"
-import { HttpClient } from "@angular/common/http"
+import { HttpClient, HttpHeaders, HttpParams, HttpResponse } from "@angular/common/http"
 import { type Observable, of } from "rxjs"
-import { delay, map, tap } from "rxjs/operators"
+import { delay, map, catchError } from "rxjs/operators"
 import { environment } from "../../environments/environment"
-import jsPDF from "jspdf"
-// @ts-ignore
-import autoTable from "jspdf-autotable"
 
 export interface ShipmentReport {
   id: number
+  historyId?: string
   shipmentId: string
   routeName: string
   departureDate: string
@@ -44,11 +42,36 @@ export interface RouteHistoryItem {
   emissions: string
 }
 
+export interface RouteReportSummaryResource {
+  historyId: string
+  shipmentId?: string
+  routeLabel: string
+  departureDate?: string
+  arrivalDate?: string
+  vesselName?: string
+  distanceNm?: number
+  totalDurationHours?: number
+  co2Tons?: number
+  noxTons?: number
+  soxTons?: number
+  events?: ShipmentEvent[]
+}
+
+export interface RouteReportSummaryListResponse {
+  items: RouteReportSummaryResource[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
 @Injectable({
   providedIn: "root",
 })
 export class ReportService {
   private apiUrl = `${environment.apiUrl}/api/v1/reports`
+  private downloadsApiUrl = `${environment.apiUrl}/reports`
+  private readonly reportsListUrl = `${environment.apiUrl}/reports`
 
   private mockShipmentReports: ShipmentReport[] = [
     {
@@ -254,8 +277,17 @@ export class ReportService {
   constructor(private http: HttpClient) {}
 
   getShipmentReports(): Observable<ShipmentReport[]> {
-    return of(this.mockShipmentReports).pipe(
-      delay(800), // Simular latencia de red
+    if (environment.mockBackend) {
+      return of(this.mockShipmentReports).pipe(delay(800))
+    }
+
+    const params = new HttpParams().set("page", "0").set("size", "20")
+    return this.http.get<RouteReportSummaryListResponse>(this.reportsListUrl, { params }).pipe(
+      map((response) => (response.items ?? []).map((item, idx) => this.mapSummaryToReport(item, idx))),
+      catchError((error) => {
+        console.error("Error al cargar los reportes reales, usando mocks.", error)
+        return of(this.mockShipmentReports)
+      }),
     )
   }
 
@@ -294,28 +326,33 @@ export class ReportService {
     )
   }
 
-  downloadReportPdf(reportId: number): Observable<boolean> {
-    // Find the report data
-    return of(this.mockShipmentReports.find((report) => report.id === reportId)).pipe(
-      delay(500), // Simulate a brief loading time
-      tap((report) => {
-        if (!report) {
-          throw new Error("Report not found")
-        }
+  downloadReport(reportId: number | string, format: "pdf" | "excel"): Observable<HttpResponse<Blob>> {
+    const targetId = String(reportId)
+    const endpoint =
+      format === "pdf"
+        ? `${this.downloadsApiUrl}/${targetId}/pdf`
+        : `${this.downloadsApiUrl}/${targetId}/excel`
 
-        // Generate the PDF
-        this.generatePdf(report)
-      }),
-      map(() => true),
-    )
+    const headers = new HttpHeaders({
+      Accept:
+        format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+
+    return this.http.get(endpoint, {
+      headers,
+      responseType: "blob",
+      observe: "response",
+    })
   }
 
   // Método para añadir un nuevo reporte
   addReport(report: ShipmentReport): void {
-    // Añadir el reporte a la lista de reportes
+    if (!environment.mockBackend) {
+      return
+    }
+
     this.mockShipmentReports.unshift(report)
 
-    // También añadir una entrada en el historial de rutas
     const routeHistoryItem: RouteHistoryItem = {
       id: report.id,
       routeName: report.routeName,
@@ -332,97 +369,56 @@ export class ReportService {
     this.mockRouteHistory.unshift(routeHistoryItem)
   }
 
-  private generatePdf(report: ShipmentReport): void {
-    // Create a new PDF document
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.width
+  private mapSummaryToReport(summary: RouteReportSummaryResource, index: number): ShipmentReport {
+    const distance = summary.distanceNm !== undefined ? `${summary.distanceNm.toFixed(1)} nm` : "N/D"
+    const totalTime =
+      summary.totalDurationHours !== undefined ? `${summary.totalDurationHours.toFixed(1)} h` : "N/D"
+    const vessel = summary.vesselName || "N/D"
+    const shipmentId = summary.shipmentId || `HIST-${summary.historyId}`
 
-    // Add company logo/header
-    doc.setFontSize(20)
-    doc.setTextColor(10, 108, 188) // Primary blue color
-    doc.text("Maritime Route Management", pageWidth / 2, 15, { align: "center" })
-
-    // Add report title
-    doc.setFontSize(16)
-    doc.setTextColor(0, 0, 0)
-    doc.text("Informe de Envío", pageWidth / 2, 25, { align: "center" })
-
-    // Add report ID and basic info
-    doc.setFontSize(12)
-    doc.text(`ID de Envío: ${report.shipmentId}`, 14, 35)
-    doc.text(`Ruta: ${report.routeName}`, 14, 42)
-    doc.text(`Embarcación: ${report.vessel}`, 14, 49)
-
-    // Add dates and timing information
-    doc.setFontSize(11)
-    doc.text(`Fecha de Salida: ${this.formatDate(report.departureDate)}`, 14, 60)
-    doc.text(`Fecha de Llegada: ${this.formatDate(report.arrivalDate)}`, 14, 67)
-    doc.text(`Tiempo Total: ${report.totalTime}`, 14, 74)
-    doc.text(`Distancia: ${report.distance}`, 14, 81)
-
-    // Add events table
-    doc.setFontSize(14)
-    doc.text("Eventos del Viaje", 14, 95)
-
-    // Create events table
-    const tableColumn = ["Fecha", "Tipo", "Descripción", "Ubicación"]
-    const tableRows = report.events.map((event) => [
-      this.formatDate(event.timestamp),
-      event.type,
-      event.description,
-      event.location || "",
-    ])
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 100,
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [10, 108, 188] },
-      alternateRowStyles: { fillColor: [240, 240, 240] },
-    })
-
-    // Add emissions information
-    // Obtener la posición Y después de la tabla
-    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 15 : 130
-    doc.setFontSize(14)
-    doc.text("Emisiones Estimadas", 14, finalY)
-
-    doc.setFontSize(11)
-    doc.text(`CO2: ${report.emissions.co2}`, 14, finalY + 10)
-    doc.text(`NOx: ${report.emissions.nox}`, 14, finalY + 17)
-    doc.text(`SOx: ${report.emissions.sox}`, 14, finalY + 24)
-
-    // Add footer
-    const pageWidthFooter = doc.internal.pageSize.width
-    // Usar una aserción de tipo para acceder a getNumberOfPages
-    const docWithPages = doc as unknown as {
-      internal: { getNumberOfPages: () => number; pageSize: { height: number } }
+    return {
+      id: Number(summary.historyId) || index,
+      historyId: summary.historyId,
+      shipmentId,
+      routeName: summary.routeLabel,
+      departureDate: summary.departureDate || "",
+      arrivalDate: summary.arrivalDate || "",
+      totalTime,
+      distance,
+      vessel,
+      events: summary.events ?? this.buildPlaceholderEvents(summary),
+      emissions: {
+        co2: summary.co2Tons !== undefined ? `${summary.co2Tons} tons` : "N/D",
+        nox: summary.noxTons !== undefined ? `${summary.noxTons} tons` : "N/D",
+        sox: summary.soxTons !== undefined ? `${summary.soxTons} tons` : "N/D",
+      },
     }
-    const pageCount = docWithPages.internal.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(10)
-      doc.setTextColor(150)
-      doc.text(
-        `Generado el ${new Date().toLocaleString()} - Página ${i} de ${pageCount}`,
-        pageWidthFooter - 15,
-        docWithPages.internal.pageSize.height - 10,
-        { align: "right" },
-      )
-    }
-
-    // Download the PDF
-    doc.save(`Informe-${report.shipmentId}.pdf`)
   }
 
-  private formatDate(dateString: string): string {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  private buildPlaceholderEvents(summary: RouteReportSummaryResource): ShipmentEvent[] {
+    const events: ShipmentEvent[] = []
+    if (summary.departureDate) {
+      events.push({
+        timestamp: summary.departureDate,
+        type: "Departure",
+        description: "Salida registrada en el historial.",
+        location: summary.routeLabel.split("->")[0]?.trim(),
+      })
+    }
+    if (summary.arrivalDate) {
+      events.push({
+        timestamp: summary.arrivalDate,
+        type: "Arrival",
+        description: "Arribo confirmado por Route History.",
+        location: summary.routeLabel.split("->")[1]?.trim(),
+      })
+    }
+    return events.length ? events : [
+      {
+        timestamp: new Date().toISOString(),
+        type: "Info",
+        description: "Reporte disponible para descarga.",
+      },
+    ]
   }
 }

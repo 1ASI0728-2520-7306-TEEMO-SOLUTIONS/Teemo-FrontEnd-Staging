@@ -5,11 +5,12 @@ import { AuthService } from "../../../services/auth.service"
 import { ThemeService } from "../../../services/theme.service"
 import { SurveyModalComponent } from "../survey-modal/survey-modal.component"
 import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.component"
+import { ConfigurationModalComponent } from "../configuration-modal/configuration-modal.component"
 
 @Component({
   selector: "app-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, SurveyModalComponent, PortAdminModalComponent],
+  imports: [CommonModule, RouterModule, ConfigurationModalComponent, SurveyModalComponent, PortAdminModalComponent],
   template: `
     <header class="header">
       <div class="header-content">
@@ -117,31 +118,12 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
               </div>
             </div>
 
-            <button class="action-btn" title="Administrar puertos" (click)="openPortAdministration()" data-testid="open-port-admin">
+            <button class="action-btn" title="Preferencias y ajustes" (click)="openConfiguration()">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </button>
-
-            <div class="theme-toggle">
-              <button class="theme-btn" (click)="toggleTheme()" [title]="isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
-                <svg *ngIf="!isDarkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="5"></circle>
-                  <line x1="12" y1="1" x2="12" y2="3"></line>
-                  <line x1="12" y1="21" x2="12" y2="23"></line>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                  <line x1="1" y1="12" x2="3" y2="12"></line>
-                  <line x1="21" y1="12" x2="23" y2="12"></line>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-                <svg *ngIf="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-              </button>
-            </div>
 
             <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -154,6 +136,13 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
         </div>
       </div>
     </header>
+
+    <app-configuration-modal
+        [isOpen]="showConfigModal"
+        [canManagePorts]="canManagePorts"
+        (close)="closeConfiguration()"
+        (managePorts)="handleManagePorts()">
+    </app-configuration-modal>
 
     <!-- Survey Modal -->
     <app-survey-modal
@@ -262,7 +251,7 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
         gap: 0.5rem;
       }
 
-      .action-btn, .logout-btn, .theme-btn {
+      .action-btn, .logout-btn {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -308,10 +297,6 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
         align-items: center;
         justify-content: center;
         animation: pulse 2s infinite;
-      }
-
-      .theme-toggle {
-        margin-left: 0.5rem;
       }
 
       /* Notifications Dropdown */
@@ -560,8 +545,7 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
       }
 
       :host-context(.compact-mode) .action-btn,
-      :host-context(.compact-mode) .logout-btn,
-      :host-context(.compact-mode) .theme-btn {
+      :host-context(.compact-mode) .logout-btn {
         width: 36px;
         height: 36px;
       }
@@ -602,15 +586,10 @@ import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.co
       }
 
       :host-context(.dark-mode) .action-btn,
-      :host-context(.dark-mode) .logout-btn,
-      :host-context(.dark-mode) .theme-btn {
+      :host-context(.dark-mode) .logout-btn {
         background: rgba(14, 165, 233, 0.12);
         border: 1px solid rgba(125, 211, 252, 0.35);
         color: #f8fafc;
-      }
-
-      :host-context(.dark-mode) .theme-toggle .theme-btn svg {
-        stroke: #f8fafc;
       }
 
       :host-context(.dark-mode) .notifications-panel {
@@ -649,6 +628,7 @@ export class HeaderComponent {
   showNotifications = false
   showSurveyNotification = true
   showPortAdminModal = false
+  showConfigModal = false
 
   notifications = [
     {
@@ -664,6 +644,10 @@ export class HeaderComponent {
       type: "success",
     },
   ]
+
+  get canManagePorts(): boolean {
+    return this.userHasRole("ROLE_OPERATOR") || this.userHasRole("ROLE_ADMIN")
+  }
 
   constructor(
       private authService: AuthService,
@@ -693,9 +677,17 @@ export class HeaderComponent {
     })
   }
 
-  toggleTheme(): void {
-    this.themeService.toggleDarkMode()
-    this.themeToggled.emit(this.isDarkMode)
+  openConfiguration(): void {
+    this.showConfigModal = true
+  }
+
+  closeConfiguration(): void {
+    this.showConfigModal = false
+  }
+
+  handleManagePorts(): void {
+    this.closeConfiguration()
+    this.openPortAdministration()
   }
 
   openPortAdministration(): void {
@@ -741,5 +733,17 @@ export class HeaderComponent {
 
   logout(): void {
     this.authService.logout()
+  }
+
+  private userHasRole(role: string): boolean {
+    const normalized = role.toUpperCase()
+    const user = this.authService.currentUserValue
+    const roles = [
+      ...(user?.roles ?? []),
+      user?.role ?? "",
+    ]
+      .filter(Boolean)
+      .map((r) => r.toUpperCase())
+    return roles.includes(normalized)
   }
 }

@@ -12,6 +12,7 @@ export interface DashboardLayout {
 }
 
 export interface NotificationPreferences {
+  channel?: "push" | "email" | "both"
   emailNotifications: boolean
   pushNotifications: boolean
   routeAlerts: boolean
@@ -62,6 +63,7 @@ export class ConfigurationService {
       mapPosition: "top",
     },
     notifications: {
+      channel: "push",
       emailNotifications: true,
       pushNotifications: true,
       routeAlerts: true,
@@ -99,7 +101,23 @@ export class ConfigurationService {
     const saved = localStorage.getItem(this.CONFIG_KEY)
     if (saved) {
       try {
-        return { ...this.defaultConfig, ...JSON.parse(saved) }
+        const parsed = JSON.parse(saved) as Partial<AppConfiguration>
+        return {
+          ...this.defaultConfig,
+          ...parsed,
+          dashboardLayout: {
+            ...this.defaultConfig.dashboardLayout,
+            ...(parsed.dashboardLayout ?? {}),
+          },
+          notifications: {
+            ...this.defaultConfig.notifications,
+            ...(parsed.notifications ?? {}),
+          },
+          userProfile: {
+            ...this.defaultConfig.userProfile,
+            ...(parsed.userProfile ?? {}),
+          },
+        }
       } catch {
         return this.defaultConfig
       }

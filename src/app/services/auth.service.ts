@@ -24,6 +24,7 @@ export interface LoginResponse {
   id: string
   username: string
   token: string
+  roles: string[]
 }
 
 export interface SignUpRequest {
@@ -66,12 +67,15 @@ export class AuthService {
     // Calling the endpoint that matches the backend's AuthenticationController
     return this.http.post<LoginResponse>(`${this.apiUrl}/sign-in`, credentials).pipe(
       map((response) => {
-        // Extract the user and token from the response
+        const roles = this.extractRoles(response)
+        const primaryRole = roles[0] ?? this.normalizeRole((response as any)?.role) ?? "ROLE_USER"
+
         const user: User = {
           id: response.id,
           username: response.username,
-          name: response.username, // If the backend doesn't provide a name, use the username
-          role: "ROLE_USER", // Assign a default role
+          name: (response as any)?.name ?? response.username,
+          role: primaryRole,
+          roles,
           token: response.token,
         }
 
@@ -151,6 +155,25 @@ export class AuthService {
 
   private setUser(user: User): void {
     localStorage.setItem(this.userKey, JSON.stringify(user))
+  }
+
+  private normalizeRole(role?: string | null): string | undefined {
+    if (!role) return undefined
+    const trimmed = role.trim().toUpperCase()
+    return trimmed.startsWith("ROLE_") ? trimmed : `ROLE_${trimmed}`
+  }
+
+  private extractRoles(payload: any): string[] {
+    const raw = payload?.roles ?? payload?.authorities ?? []
+    if (Array.isArray(raw)) {
+      return raw.map((role) => this.normalizeRole(role)).filter(Boolean) as string[]
+    }
+    if (typeof raw === "string") {
+      const normalized = this.normalizeRole(raw)
+      return normalized ? [normalized] : []
+    }
+    const single = this.normalizeRole(payload?.role)
+    return single ? [single] : []
   }
 
   private getRoleFromRoles(roles: string[]): string {

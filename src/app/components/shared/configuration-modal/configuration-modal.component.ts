@@ -57,10 +57,11 @@ type NotificationChannel = NotificationPreferences["channel"]
         <section class="tab-content" *ngIf="activeTab === 'preferences'">
           <div class="settings-grid">
             <article class="card">
-              <div class="card-header">
+              <div class="card-header decorated">
+                <span class="chip chip-primary">Tema</span>
                 <div>
-                  <p class="eyebrow">Tema</p>
                   <h3>Personaliza la apariencia</h3>
+                  <p class="support-text">Define un modo operativo para cada jornada.</p>
                 </div>
               </div>
 
@@ -83,44 +84,24 @@ type NotificationChannel = NotificationPreferences["channel"]
                   </div>
                 </div>
 
-                <div class="setting-columns">
-                  <label class="label">
-                    Color primario
-                    <input type="color" [(ngModel)]="themeConfig.primaryColor" (change)="updateTheme()">
-                  </label>
-                  <label class="label">
-                    Color de acento
-                    <input type="color" [(ngModel)]="themeConfig.accentColor" (change)="updateTheme()">
-                  </label>
-                </div>
-
-                <div class="setting-group">
-                  <label class="label">Tamano de fuente</label>
-                  <select [(ngModel)]="themeConfig.fontSize" (change)="updateTheme()">
-                    <option value="small">Pequeno</option>
-                    <option value="medium">Mediano</option>
-                    <option value="large">Grande</option>
-                  </select>
-                </div>
-
-                <div class="switch-grid">
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="themeConfig.animations" (change)="updateTheme()">
-                    <span>Animaciones</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="themeConfig.compactMode" (change)="updateTheme()">
-                    <span>Modo compacto</span>
-                  </label>
+                <div class="theme-preview">
+                  <div class="preview-panel">
+                    <span class="preview-badge">Vista previa</span>
+                    <h4>{{ modeTitle }}</h4>
+                    <p>{{ modeDescription }}</p>
+                    <div class="preview-line"></div>
+                    <span class="preview-hint">Los cambios se aplican al instante</span>
+                  </div>
                 </div>
               </div>
             </article>
 
             <article class="card">
-              <div class="card-header">
+              <div class="card-header decorated">
+                <span class="chip chip-secondary">Alertas</span>
                 <div>
-                  <p class="eyebrow">Alertas</p>
                   <h3>Notificaciones y avisos</h3>
+                  <p class="support-text">Controla canales y silencios operativos.</p>
                 </div>
               </div>
 
@@ -333,18 +314,35 @@ type NotificationChannel = NotificationPreferences["channel"]
       }
 
       .card {
-        border: 1px solid #e2e8f0;
-        border-radius: 1rem;
-        background: #f8fafc;
+        position: relative;
+        border-radius: 1.25rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.85));
+        box-shadow: 0 25px 45px rgba(15, 23, 42, 0.15);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      .card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 65%);
+        opacity: 0.8;
+        pointer-events: none;
       }
 
       .card-header {
+        position: relative;
+        z-index: 1;
         padding: 1.25rem 1.25rem 0;
       }
 
       .card-body {
+        position: relative;
+        z-index: 1;
         padding: 1.25rem;
         display: flex;
         flex-direction: column;
@@ -394,10 +392,69 @@ type NotificationChannel = NotificationPreferences["channel"]
         gap: 0.75rem;
       }
 
-      .setting-columns {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
+      .theme-preview {
+        margin-top: 0.25rem;
+        position: relative;
+        border-radius: 1rem;
+        overflow: hidden;
+        padding: 1.25rem;
+        background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.35), rgba(15, 23, 42, 0.95));
+        color: #e2e8f0;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+      }
+
+      .theme-preview::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(15, 118, 110, 0.4), transparent 60%);
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .preview-panel {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .preview-panel h4 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+
+      .preview-panel p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(248, 250, 252, 0.85);
+      }
+
+      .preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(15, 118, 110, 0.2);
+        color: #99f6e4;
+        padding: 0.25rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .preview-line {
+        height: 1px;
+        width: 100%;
+        background: rgba(226, 232, 240, 0.3);
+      }
+
+      .preview-hint {
+        font-size: 0.8rem;
+        color: rgba(226, 232, 240, 0.8);
       }
 
       .quiet-hours {
@@ -477,8 +534,14 @@ type NotificationChannel = NotificationPreferences["channel"]
       }
 
       :host-context(.dark-mode) .card {
-        background: rgba(15, 23, 42, 0.7);
-        border-color: rgba(148, 163, 184, 0.25);
+        background: linear-gradient(150deg, rgba(13, 37, 63, 0.95), rgba(15, 23, 42, 0.9));
+        border-color: rgba(59, 130, 246, 0.2);
+        box-shadow: 0 25px 45px rgba(2, 6, 23, 0.6);
+      }
+
+      :host-context(.dark-mode) .card::after {
+        background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.25), transparent 65%);
+        opacity: 1;
       }
 
       :host-context(.dark-mode) .description,
@@ -581,5 +644,23 @@ export class ConfigurationModalComponent implements OnInit, OnChanges {
     }
     this.notificationChannel = this.notifications.channel ?? "push"
     this.themeConfig = { ...this.themeService.getCurrentThemeConfig() }
+  }
+
+  get modeTitle(): string {
+    const mode = this.themeConfig.mode
+    if (mode === "dark") return "Midnight Ops activo"
+    if (mode === "light") return "Modo claro operativo"
+    return "Modo automatico adaptable"
+  }
+
+  get modeDescription(): string {
+    const mode = this.themeConfig.mode
+    if (mode === "dark") {
+      return "Prioriza la legibilidad nocturna reduciendo el brillo en salas de mando."
+    }
+    if (mode === "light") {
+      return "Aprovecha fondos claros para operaciones diurnas y briefings rapidos."
+    }
+    return "Detecta tu preferencia del sistema y armoniza la interfaz segun la hora."
   }
 }

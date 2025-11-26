@@ -13,12 +13,32 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
   imports: [CommonModule, RouterModule, ConfigurationModalComponent, SurveyModalComponent, PortAdminModalComponent],
   template: `
     <header class="header">
+      <div class="header-ambient" aria-hidden="true">
+        <span class="ambient-gradient"></span>
+        <span class="ambient-orb orb-left"></span>
+        <span class="ambient-orb orb-right"></span>
+        <span class="ambient-grid"></span>
+      </div>
+      <div class="header-lightbar" aria-hidden="true"></div>
+
       <div class="header-content">
         <div class="header-left">
           <div class="title-row">
-            <!-- Logo en data URI PNG (placeholder). Reemplazar por assets/logo.png si añades el archivo) -->
-            <img src="assets/Teemo-hongo-logo.png" alt="Logo" class="header-logo" />
-            <h1 class="page-title">{{ pageTitle }}</h1>
+            <div class="title-stack">
+              <div class="title-main">
+                <!-- Logo en data URI PNG (placeholder). Reemplazar por assets/logo.png si añades el archivo) -->
+                <img src="assets/Teemo-hongo-logo.png" alt="Logo" class="header-logo" />
+                <div class="title-text">
+                  <h1 class="page-title">{{ pageTitle }}</h1>
+                  <p class="page-subtitle">{{ subtitleText }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="header-pulse" aria-hidden="true">
+              <span class="pulse-dot"></span>
+              <span class="pulse-line"></span>
+            </div>
           </div>
           <div class="breadcrumbs" *ngIf="breadcrumbs && breadcrumbs.length > 0">
             <a [routerLink]="['/dashboard']" class="breadcrumb-item">Dashboard</a>
@@ -43,9 +63,10 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         </div>
 
         <div class="header-right">
-          <ng-content></ng-content>
+          <div class="header-right-actions">
+            <ng-content></ng-content>
 
-          <div class="header-actions">
+            <div class="header-actions">
             <!-- Notifications with Survey -->
             <div class="notifications-dropdown">
               <button class="action-btn" title="Notificaciones" (click)="toggleNotifications()">
@@ -132,96 +153,216 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
             </button>
+            </div>
+
           </div>
         </div>
       </div>
     </header>
 
-    <app-configuration-modal
-        [isOpen]="showConfigModal"
-        [canManagePorts]="canManagePorts"
-        (close)="closeConfiguration()"
-        (managePorts)="handleManagePorts()">
-    </app-configuration-modal>
+    <ng-container>
+      <app-configuration-modal
+          [isOpen]="showConfigModal"
+          [canManagePorts]="canManagePorts"
+          (close)="closeConfiguration()"
+          (managePorts)="handleManagePorts()">
+      </app-configuration-modal>
 
-    <!-- Survey Modal -->
-    <app-survey-modal
-        [isOpen]="showSurveyModal"
-        (close)="closeSurvey()">
-    </app-survey-modal>
+      <!-- Survey Modal -->
+      <app-survey-modal
+          [isOpen]="showSurveyModal"
+          (close)="closeSurvey()">
+      </app-survey-modal>
 
-    <app-port-admin-modal
-        [isOpen]="showPortAdminModal"
-        (close)="closePortAdministration()">
-    </app-port-admin-modal>
+      <app-port-admin-modal
+          [isOpen]="showPortAdminModal"
+          (close)="closePortAdministration()">
+      </app-port-admin-modal>
+    </ng-container>
   `,
   styles: [
     `
       /* Force header to maintain original colors regardless of theme */
       .header {
-        background-color: var(--primary-color, #0a6cbc) !important;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        height: 70px;
+        background: radial-gradient(circle at 10% -20%, rgba(59, 130, 246, 0.65), rgba(15, 23, 42, 0.9)) #031028;
+        box-shadow: 0 12px 24px rgba(2, 6, 23, 0.45);
+        border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+        min-height: 70px;
         display: flex;
-        align-items: center;
+        align-items: stretch;
         padding: 0 1.5rem;
         position: fixed;
         top: 0;
         right: 0;
         left: 80px;
         z-index: 50;
-        transition: left 250ms ease, background-color var(--animation-duration, 0.3s) ease;
+        overflow: hidden;
+        transition: left 250ms ease, background 300ms ease;
 
         &.sidebar-expanded {
           left: 260px;
         }
       }
 
+      .header-ambient {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .ambient-gradient {
+        position: absolute;
+        inset: -40% -20%;
+        background: linear-gradient(120deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.1), rgba(99, 102, 241, 0.4));
+        filter: blur(60px);
+        opacity: 0.8;
+        animation: gradientFloat 8s ease-in-out infinite alternate;
+      }
+
+      .ambient-orb {
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.5;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 65%);
+      }
+
+      .ambient-orb.orb-left {
+        left: -60px;
+        top: -40px;
+      }
+
+      .ambient-orb.orb-right {
+        right: -80px;
+        bottom: -120px;
+        background: radial-gradient(circle, rgba(248, 113, 113, 0.4), transparent 65%);
+      }
+
+      .ambient-grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 120px 120px;
+        opacity: 0.35;
+        transform: skewY(-8deg);
+        animation: gridDrift 18s linear infinite;
+      }
+
+      .header-lightbar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.8), transparent);
+        opacity: 0.8;
+      }
+
       .header-content {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;
         width: 100%;
+        gap: 1.5rem;
       }
 
       .header-left {
         display: flex;
         flex-direction: column;
+        gap: 0.25rem;
       }
 
       .title-row {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+      }
+
+      .title-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .title-main {
+        display: flex;
+        align-items: center;
         gap: 0.75rem;
       }
 
+      .title-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+
       .header-logo {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         object-fit: contain;
         display: block;
+        filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.35));
       }
 
       .page-title {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: white !important;
         margin: 0;
-        transition: color var(--animation-duration, 0.3s) ease;
+        letter-spacing: -0.02em;
+        text-shadow: 0 6px 14px rgba(3, 7, 18, 0.4);
+      }
+
+      .page-subtitle {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.78);
+        font-weight: 400;
+        max-width: 460px;
+      }
+
+      .header-pulse {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding-left: 1rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .pulse-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 9999px;
+        background: #34d399;
+        box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
+        animation: pulse 2s infinite;
+      }
+
+      .pulse-line {
+        width: 80px;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(96, 165, 250, 0.9));
+        border-radius: 9999px;
+        animation: shimmer 3s linear infinite;
       }
 
       .breadcrumbs {
         display: flex;
         align-items: center;
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.7);
-        margin-top: 0.25rem;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.65);
       }
 
       .breadcrumb-item {
-        color: rgba(255, 255, 255, 0.7) !important;
+        color: rgba(255, 255, 255, 0.75) !important;
         text-decoration: none;
-        transition: color var(--animation-duration, 0.3s) ease;
+        transition: color 200ms ease;
 
         &:hover {
           color: white !important;
@@ -236,13 +377,23 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
 
       .breadcrumb-separator {
         margin: 0 0.25rem;
-        color: rgba(255, 255, 255, 0.5) !important;
+        color: rgba(255, 255, 255, 0.45) !important;
       }
 
       .header-right {
         display: flex;
         align-items: center;
         gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .header-right-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .header-actions {
@@ -478,6 +629,22 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         font-size: 0.875rem;
       }
 
+      @keyframes shimmer {
+        0% { transform: scaleX(0); opacity: 0.4; }
+        50% { transform: scaleX(1); opacity: 1; }
+        100% { transform: scaleX(0); opacity: 0.4; }
+      }
+
+      @keyframes gradientFloat {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(20px); }
+      }
+
+      @keyframes gridDrift {
+        0% { transform: skewY(-8deg) translateX(0); }
+        100% { transform: skewY(-8deg) translateX(-80px); }
+      }
+
       @keyframes pulse {
         0%, 100% {
           transform: scale(1);
@@ -536,12 +703,17 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
 
       /* Compact mode styles */
       :host-context(.compact-mode) .header {
-        height: 60px;
+        min-height: 60px;
         padding: 0 1rem;
       }
 
       :host-context(.compact-mode) .page-title {
         font-size: 1.25rem;
+      }
+
+      :host-context(.compact-mode) .page-subtitle,
+      :host-context(.compact-mode) .header-pulse {
+        display: none;
       }
 
       :host-context(.compact-mode) .action-btn,
@@ -556,6 +728,16 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         animation: none !important;
       }
 
+      @media (max-width: 768px) {
+        .page-subtitle {
+          display: none;
+        }
+
+        .header-right {
+          justify-content: flex-start;
+        }
+      }
+
       /* Mobile responsiveness */
       @media (max-width: 640px) {
         .notifications-panel {
@@ -565,12 +747,17 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
       }
 
       :host-context(.dark-mode) .header {
-        background: rgba(6, 12, 24, 0.92);
-        border-color: rgba(148, 163, 184, 0.2);
+        background: radial-gradient(circle at -5% 0%, rgba(14, 165, 233, 0.5), rgba(2, 6, 23, 0.95));
+        border-color: rgba(148, 163, 184, 0.35);
         color: #e2e8f0;
       }
 
+      :host-context(.dark-mode) .ambient-grid {
+        opacity: 0.55;
+      }
+
       :host-context(.dark-mode) .page-title,
+      :host-context(.dark-mode) .page-subtitle,
       :host-context(.dark-mode) .breadcrumb-item,
       :host-context(.dark-mode) .breadcrumb-separator {
         color: #f8fafc;
@@ -584,6 +771,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         background: #f97316;
         color: #020617;
       }
+
 
       :host-context(.dark-mode) .action-btn,
       :host-context(.dark-mode) .logout-btn {
@@ -617,6 +805,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
 })
 export class HeaderComponent {
   @Input() pageTitle = "Teemo Solutions"
+  @Input() subtitle?: string
   @Input() breadcrumbs: { label: string; link?: string }[] = []
   @Input() sidebarCollapsed = false
   @Input() notificationCount = 0
@@ -745,5 +934,9 @@ export class HeaderComponent {
       .filter(Boolean)
       .map((r) => r.toUpperCase())
     return roles.includes(normalized)
+  }
+
+  get subtitleText(): string {
+    return this.subtitle?.trim() || "Orquestando rutas inteligentes y logística avanzada"
   }
 }

@@ -23,16 +23,8 @@ declare const VANTA: any
         <app-header
           pageTitle="Informes de Envíos"
           [notificationCount]="2"
-        >
-          <button class="btn-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Exportar Informes
-          </button>
-        </app-header>
+          subtitle="Orquestando rutas inteligentes y logística avanzada"
+        ></app-header>
 
         <main class="reports-content">
           <div class="reports-grid">
@@ -426,11 +418,17 @@ declare const VANTA: any
       justify-content: space-between;
       align-items: center;
       margin-bottom: 0.5rem;
+      gap: 0.5rem;
     }
 
     .report-id {
       font-weight: 600;
       color: #0f172a;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .report-status {
@@ -440,6 +438,8 @@ declare const VANTA: any
       color: #00c853;
       border-radius: 9999px;
       font-weight: 600;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .report-route {
@@ -1051,3 +1051,4 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
     }, 5000)
   }
 }
+

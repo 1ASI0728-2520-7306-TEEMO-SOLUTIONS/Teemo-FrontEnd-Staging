@@ -5,7 +5,6 @@
   <div class="page-body">
     <app-header
       pageTitle="Historial de Rutas"
-      [breadcrumbs]="[{ label: 'Reportes', link: '/shipment-reports' }, { label: 'Historial' }]"
     >
       <button class="btn ghost" type="button" (click)="refresh()">
         <span>Actualizar</span>
@@ -18,7 +17,7 @@
           <div class="filters-header">
             <div>
               <h2>Filtros</h2>
-              <p>Combina criterios para encontrar cálculos específicos.</p>
+              <p>Combina criterios para encontrar cï¿½lculos especï¿½ficos.</p>
             </div>
             <div class="filters-actions">
               <button type="button" class="btn ghost" (click)="resetFilters()">Restablecer</button>
@@ -73,7 +72,7 @@
             </label>
 
             <label class="filter-field">
-              <span>Tamaño de página</span>
+              <span>Tamaï¿½o de pï¿½gina</span>
               <select formControlName="size" (change)="onPageSizeChange()">
                 <option *ngFor="let size of pageSizes" [value]="size">{{ size }} items</option>
               </select>
@@ -87,10 +86,10 @@
           <header>
             <div>
               <h2>Resultados</h2>
-              <p *ngIf="!loadingList">{{ pagination.totalElements }} coincidencias · página {{ pagination.page + 1 }} de {{ pagination.totalPages || 1 }}</p>
+              <p *ngIf="!loadingList">{{ pagination.totalElements }} coincidencias ï¿½ pï¿½gina {{ pagination.page + 1 }} de {{ pagination.totalPages || 1 }}</p>
             </div>
             <div class="telemetry" *ngIf="telemetryCount !== null">
-              <span>Telemetría</span>
+              <span>Telemetrï¿½a</span>
               <strong>{{ telemetryCount }} consultas registradas</strong>
             </div>
           </header>
@@ -130,7 +129,7 @@
               </div>
               <div class="meta-row">
                 <span>Distancia: {{ formatDistance(item.totalDistance) }}</span>
-                <span>Duración: {{ formatDuration(item.durationEstimate) }}</span>
+                <span>Duraciï¿½n: {{ formatDuration(item.durationEstimate) }}</span>
                 <span>Costo: {{ formatCost(item.costEstimate) }}</span>
               </div>
               <div class="chips" *ngIf="item.avoidedPortIds?.length">
@@ -143,7 +142,7 @@
           <footer class="list-footer" *ngIf="routeHistory.length > 0">
             <div class="pagination">
               <button class="btn ghost" type="button" (click)="changePage(-1)" [disabled]="pagination.page === 0 || loadingList">Anterior</button>
-              <span>Página {{ pagination.page + 1 }} / {{ pagination.totalPages || 1 }}</span>
+              <span>Pï¿½gina {{ pagination.page + 1 }} / {{ pagination.totalPages || 1 }}</span>
               <button class="btn ghost" type="button" (click)="changePage(1)" [disabled]="pagination.page + 1 >= pagination.totalPages || loadingList">Siguiente</button>
             </div>
             <div class="cursor-hint" *ngIf="nextCursorHint">
@@ -181,7 +180,7 @@
                 <h4>Totales</h4>
                 <ul>
                   <li><span>Distancia</span> <strong>{{ formatDistance(item.totalDistance) }}</strong></li>
-                  <li><span>Duración estimada</span> <strong>{{ formatDuration(item.durationEstimate) }}</strong></li>
+                  <li><span>Duraciï¿½n estimada</span> <strong>{{ formatDuration(item.durationEstimate) }}</strong></li>
                   <li><span>Costo estimado</span> <strong>{{ formatCost(item.costEstimate) }}</strong></li>
                 </ul>
               </div>
@@ -224,8 +223,8 @@
             </div>
 
             <section class="archive-dialog" *ngIf="showArchiveDialog">
-              <h4>Archivar cálculo</h4>
-              <p>Esta acción requiere rol de Operador o Admin. Opcionalmente deja una nota.</p>
+              <h4>Archivar cï¿½lculo</h4>
+              <p>Esta acciï¿½n requiere rol de Operador o Admin. Opcionalmente deja una nota.</p>
               <textarea
                 rows="3"
                 name="archiveNotes"
@@ -244,8 +243,8 @@
 
           <ng-template #emptyDetail>
             <div class="empty-detail">
-              <h3>Selecciona un cálculo</h3>
-              <p>El panel mostrará el detalle, metadata y trazado una vez elijas un registro.</p>
+              <h3>Selecciona un cï¿½lculo</h3>
+              <p>El panel mostrarï¿½ el detalle, metadata y trazado una vez elijas un registro.</p>
             </div>
           </ng-template>
         </article>
@@ -253,4 +252,6 @@
     </main>
   </div>
 </div>
+
+
 

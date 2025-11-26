@@ -7,6 +7,7 @@ import { SidebarComponent } from "../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../shared/header/header.component"
 import { AnimationService } from "../../services/animation.service"
 import { ThemeService } from "../../services/theme.service"
+import { RouteService, type PopularRouteResource } from "../../services/route.service"
 import { Subscription } from "rxjs"
 
 declare var VANTA: any
@@ -106,6 +107,12 @@ interface PopularRoute {
                 <div class="card-actions">
                   <!-- Botón 'Nueva Ruta' eliminado aquí porque ya existe en el header -->
                 </div>
+              </div>
+              <div *ngIf="popularRoutesLoading" class="routes-status">
+                Actualizando rutas populares...
+              </div>
+              <div *ngIf="!popularRoutesLoading && popularRoutesLoadError" class="routes-status error">
+                {{ popularRoutesLoadError }}
               </div>
               <div class="routes-grid">
                 <div
@@ -421,6 +428,16 @@ interface PopularRoute {
         padding: 1.5rem;
       }
 
+      .routes-status {
+        margin: 0.5rem 1.5rem;
+        font-size: 0.95rem;
+        color: #4b5563;
+      }
+
+      .routes-status.error {
+        color: #b91c1c;
+      }
+
       .popular-route-card {
         background-color: rgba(255, 255, 255, 0.9);
         border: 1px solid rgba(226, 232, 240, 0.5);
@@ -669,6 +686,14 @@ interface PopularRoute {
         background: transparent;
       }
 
+      :host-context(.dark-mode) .routes-status {
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .routes-status.error {
+        color: #f87171;
+      }
+
       :host-context(.dark-mode) .popular-route-card {
         background: rgba(8, 17, 35, 0.95);
         border: 1px solid rgba(59, 130, 246, 0.2);
@@ -730,7 +755,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     role: "Capitán",
   }
 
-  popularRoutes: PopularRoute[] = [
+  private readonly fallbackPopularRoutes: PopularRoute[] = [
     {
       id: 1,
       name: "Callao - San Francisco",
@@ -793,6 +818,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   ]
 
+  popularRoutes: PopularRoute[] = []
+  popularRoutesLoading = false
+  popularRoutesLoadError: string | null = null
+
   showPortSelector = false
   errorMessage: string | null = null
   sidebarCollapsed = true
@@ -812,7 +841,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private animationService: AnimationService,
     private themeService: ThemeService,
-  ) {}
+    private routeService: RouteService,
+  ) {
+    this.popularRoutes = [...this.fallbackPopularRoutes]
+  }
 
   ngOnInit(): void {
     this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
@@ -849,6 +881,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }, 800)
       }, 3000)
     }
+
+    this.loadPopularRoutes()
   }
 
   ngAfterViewInit(): void {
@@ -929,6 +963,65 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private getVantaColor(): number {
     return this.isDarkMode ? 0x232331 : 0x759298
+  }
+
+  private loadPopularRoutes(limit = 8): void {
+    this.popularRoutesLoading = true
+    this.popularRoutesLoadError = null
+
+    this.routeService.getPopularRoutes(limit).subscribe({
+      next: (routes) => {
+        const normalizedRoutes = (routes ?? []).map((route, index) => this.mapPopularRouteResource(route, index))
+
+        this.popularRoutes = normalizedRoutes.length > 0 ? normalizedRoutes : [...this.fallbackPopularRoutes]
+        this.popularRoutesLoading = false
+      },
+      error: (error: Error) => {
+        console.error("No se pudieron cargar las rutas populares:", error)
+        this.popularRoutesLoadError = "No se pudieron cargar las rutas populares. Mostrando datos recientes."
+        this.popularRoutes = [...this.fallbackPopularRoutes]
+        this.popularRoutesLoading = false
+      },
+    })
+  }
+
+  private mapPopularRouteResource(resource: PopularRouteResource | null | undefined, index: number): PopularRoute {
+    const safeOrigin = resource?.originPort?.trim() || "Origen desconocido"
+    const safeDestination = resource?.destinationPort?.trim() || "Destino desconocido"
+    const searchCount = resource?.searchCount ?? 0
+    const distance = resource?.distance?.trim() || "N/D"
+    const estimatedTime = resource?.estimatedTime?.trim() || "N/D"
+
+    let resolvedId = index + 1
+    if (typeof resource?.routeId === "number" && Number.isFinite(resource.routeId)) {
+      resolvedId = resource.routeId
+    } else if (typeof resource?.routeId === "string") {
+      const parsed = Number.parseInt(resource.routeId, 10)
+      if (Number.isFinite(parsed)) {
+        resolvedId = parsed
+      }
+    }
+
+    return {
+      id: resolvedId,
+      name: `${safeOrigin} - ${safeDestination}`,
+      originPort: safeOrigin,
+      destinationPort: safeDestination,
+      searchCount,
+      distance,
+      estimatedTime,
+      popularity: this.resolvePopularityFromCount(searchCount),
+    }
+  }
+
+  private resolvePopularityFromCount(searchCount: number): PopularRoute["popularity"] {
+    if (searchCount >= 800) {
+      return "high"
+    }
+    if (searchCount >= 400) {
+      return "medium"
+    }
+    return "low"
   }
 
   togglePortSelector(): void {

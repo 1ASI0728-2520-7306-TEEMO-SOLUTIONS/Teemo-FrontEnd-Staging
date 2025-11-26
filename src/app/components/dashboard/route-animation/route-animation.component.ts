@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   EventEmitter,
   Input,
@@ -1461,60 +1461,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
 
     console.log(`\nRuta marítima inteligente creada con ${this.routePoints.length} puntos`)
 
-    // Logging detallado para debugging del antimeridiano
-    if (this.routePoints.length > 0) {
-      console.log("=== ANÁLISIS DE PUNTOS DE RUTA ===")
-      console.log("Primer punto:", { lat: this.routePoints[0].lat.toFixed(4), lng: this.routePoints[0].lng.toFixed(4) })
-      console.log("Último punto:", {
-        lat: this.routePoints[this.routePoints.length - 1].lat.toFixed(4),
-        lng: this.routePoints[this.routePoints.length - 1].lng.toFixed(4),
-      })
-
-      let maxLngJump = 0
-      let jumpIndex = -1
-      for (let k = 1; k < this.routePoints.length; k++) {
-        const lngDiff = Math.abs(this.routePoints[k].lng - this.routePoints[k - 1].lng)
-        if (lngDiff > maxLngJump) {
-          maxLngJump = lngDiff
-          jumpIndex = k
-        }
-      }
-
-      if (maxLngJump > 180) {
-        // Un salto mayor a 180 grados es problemático
-        console.warn(`⚠️ SALTO BRUSCO DETECTADO en índice ${jumpIndex}:`)
-        console.warn(
-          `  Punto ${jumpIndex - 1}: lat=${this.routePoints[jumpIndex - 1].lat.toFixed(4)}, lng=${this.routePoints[jumpIndex - 1].lng.toFixed(4)}`,
-        )
-        console.warn(
-          `  Punto ${jumpIndex}: lat=${this.routePoints[jumpIndex].lat.toFixed(4)}, lng=${this.routePoints[jumpIndex].lng.toFixed(4)}`,
-        )
-        console.warn(`  Diferencia de longitud: ${maxLngJump.toFixed(4)}°`)
-      } else {
-        console.log(
-          "✓ Análisis de saltos de longitud: No se detectaron saltos bruscos (>180°). Máximo salto: ",
-          maxLngJump.toFixed(4) + "°",
-        )
-      }
-
-      const samplePoints = this.routePoints.filter(
-        (_, index) => index % Math.max(1, Math.floor(this.routePoints.length / 20)) === 0,
-      )
-      console.log(
-        "Muestra de puntos de ruta (cada ~5%):",
-        samplePoints.map((p) => ({ lat: p.lat.toFixed(2), lng: p.lng.toFixed(2) })),
-      )
-    }
-
     this.drawRoute()
   }
 
   private createIntelligentMaritimeCurve(start: PortCoordinates, end: PortCoordinates, numPoints: number): L.LatLng[] {
-    console.log(
-      `Creando curva inteligente de [${start.latitude}, ${start.longitude}] a [${end.latitude}, ${end.longitude}]`,
-    )
-
-    // Primero, verificar si la línea directa cruza tierra con alta precisión
     const directLineCrossesLand = this.doesLineIntersectLandPrecise(start, end)
 
     // Información para debugging
@@ -1526,21 +1476,16 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     if (!directLineCrossesLand) {
-      console.log("✓ Línea directa no cruza tierra, usando ruta recta")
       this.lastDetectionInfo.curveDirection = 0
       return this.createStraightLine(start, end, numPoints)
     }
 
-    console.log("⚠ Línea directa cruza tierra, buscando ruta alternativa...")
 
     // Buscar la mejor curvatura usando múltiples intentos
     const bestCurve = this.findBestCurveDirection(start, end, numPoints)
     this.lastDetectionInfo.curveDirection = bestCurve.direction
     this.lastDetectionInfo.intersections = bestCurve.intersections
 
-    console.log(
-      `✓ Mejor curvatura encontrada: ${bestCurve.direction > 0 ? "ESTE" : "OESTE"} (${bestCurve.intersections} intersecciones)`,
-    )
 
     return bestCurve.points
   }
@@ -1605,9 +1550,6 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     // El primer punto del primer sub-segmento, normalizado para la prueba de intersección.
     // start.longitude aquí puede estar desenrollado.
     let p1_normalized = { lat: start.latitude, lng: this.normalizeLongitude(start.longitude) }
-    console.log(
-      `doesLineIntersectLandPrecise: Probando de ${JSON.stringify(start)} a ${JSON.stringify(end)} con deltaLng ${actualDeltaLng.toFixed(2)} y ${numTestSegments} segmentos.`,
-    )
 
     for (let k = 1; k <= numTestSegments; k++) {
       const t = k / numTestSegments
@@ -1622,14 +1564,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       }
 
       if (this.doesSegmentIntersectLand(p1_normalized, p2_normalized)) {
-        console.log(
-          `Intersección en doesLineIntersectLandPrecise: sub-segmento ${JSON.stringify(p1_normalized)} -> ${JSON.stringify(p2_normalized)} cruza tierra.`,
-        )
         return true
       }
       p1_normalized = p2_normalized
     }
-    console.log(`doesLineIntersectLandPrecise: No se encontraron intersecciones para el segmento.`)
     return false
   }
 
@@ -1731,12 +1669,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       absDirection: number
     }> = []
 
-    console.log(`findBestCurveDirection: Buscando curva entre ${JSON.stringify(start)} y ${JSON.stringify(end)}`)
 
     for (const dir of testDirections) {
       const currentPoints = this.createCurveWithDirection(start, end, dir, numPoints)
       const currentIntersections = this.countCurveIntersections(currentPoints)
-      console.log(`Probando dirección ${dir}: ${currentIntersections} intersecciones`)
       candidates.push({
         direction: dir,
         points: currentPoints,
@@ -1747,9 +1683,6 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
 
     const zeroIntersectionCandidate = candidates.find((candidate) => candidate.intersections === 0)
     if (zeroIntersectionCandidate) {
-      console.log(
-        `findBestCurveDirection: Se encontró una curva sin intersecciones (dirección ${zeroIntersectionCandidate.direction}).`,
-      )
       return {
         direction: zeroIntersectionCandidate.direction,
         points: zeroIntersectionCandidate.points,
@@ -1777,9 +1710,6 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     const bestCandidate = candidates[0]
 
     if (bestCandidate) {
-      console.log(
-        `Mejor opción elegida: dirección ${bestCandidate.direction}, intersecciones: ${bestCandidate.intersections}, absDirección: ${bestCandidate.absDirection}`,
-      )
       return {
         direction: bestCandidate.direction,
         points: bestCandidate.points,
@@ -1788,9 +1718,6 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     // Fallback: si algo salió mal y no hay candidatos (no debería pasar con testDirections no vacío)
-    console.warn(
-      "findBestCurveDirection: No se encontraron candidatos de curva válidos, devolviendo línea recta original.",
-    )
     const straightLinePoints = this.createStraightLine(start, end, numPoints)
     return {
       direction: 0, // Indica línea recta
@@ -1897,7 +1824,6 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       return 0
     }
     let intersections = 0
-    console.log(`countCurveIntersections: Verificando ${curvePoints.length - 1} segmentos de curva.`)
 
     for (let i = 0; i < curvePoints.length - 1; i++) {
       const p1_unwrapped = curvePoints[i]
@@ -1919,13 +1845,9 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       // ya que el segmento de la curva generado por createCurveWithDirection ya es corto.
       // Un valor como 5-10 debería ser suficiente.
       if (this.doesLineIntersectLandPrecise(segmentStart, segmentEnd, 10)) {
-        console.log(
-          `Intersección contada para segmento de curva: ${JSON.stringify(segmentStart)} -> ${JSON.stringify(segmentEnd)}`,
-        )
         intersections++
       }
     }
-    console.log(`countCurveIntersections: Total de intersecciones encontradas: ${intersections}`)
     return intersections
   }
 
@@ -2454,3 +2376,4 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 }
+

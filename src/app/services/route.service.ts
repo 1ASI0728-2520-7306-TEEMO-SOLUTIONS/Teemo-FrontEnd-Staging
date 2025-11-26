@@ -58,6 +58,16 @@ export interface RouteDistanceResource {
   metadata: Record<string, any>
 }
 
+export interface PopularRouteResource {
+  routeId?: number | string
+  originPort?: string
+  destinationPort?: string
+  searchCount?: number
+  distance?: string
+  estimatedTime?: string
+  lastSearchedAt?: string
+}
+
 export interface RouteReportData {
   name: string
   originPortId: string
@@ -132,6 +142,13 @@ export class RouteService {
     return this.http
       .get<RouteDistanceResource>(`${this.apiUrl}/distance-between-ports`, { params })
       .pipe(catchError(this.handleError))
+  }
+
+  getPopularRoutes(limit = 8): Observable<PopularRouteResource[]> {
+    const sanitizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 8
+    const params = new HttpParams().set("limit", sanitizedLimit.toString())
+
+    return this.http.get<PopularRouteResource[]>(`${this.apiUrl}/popular`, { params }).pipe(catchError(this.handleError))
   }
 
   recalculateRoute(routeId: string, payload: { avoidedPortIds?: string[] } = {}): Observable<RouteCalculationResource> {

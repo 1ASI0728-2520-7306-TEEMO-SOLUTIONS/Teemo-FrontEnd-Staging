@@ -1,15 +1,17 @@
-import { Component, OnDestroy, OnInit, AfterViewInit } from "@angular/core"
+import { AfterViewInit, Component, OnDestroy, OnInit } from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { FormsModule } from "@angular/forms"
 import { RouterModule } from "@angular/router"
 import * as L from "leaflet"
 import { Subscription } from "rxjs"
-import { NearbyPortService, NearbyPort } from "../../../services/nearby-port.service"
+import { NearbyPortService, PortOperationalStatus, PortOverviewItem } from "../../../services/nearby-port.service"
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 import { ThemeService } from "../../../services/theme.service"
 
 declare const VANTA: any
+
+type PortFilter = "all" | PortOperationalStatus
 
 @Component({
   selector: "app-nearby-ports",
@@ -21,10 +23,7 @@ declare const VANTA: any
       <app-sidebar [currentUser]="currentUser"></app-sidebar>
 
       <div class="main-content">
-        <app-header
-          pageTitle="Información de Puertos"
-          [notificationCount]="1"
-        ></app-header>
+        <app-header pageTitle="Información de Puertos" [notificationCount]="1"></app-header>
 
         <main class="nearby-ports-content">
           <div class="nearby-ports-grid">
@@ -32,11 +31,15 @@ declare const VANTA: any
               <div class="map-header">
                 <div>
                   <h2>Mapa de Puertos</h2>
+                  <p>Vista geográfica de los puertos monitoreados.</p>
                 </div>
-                <div class="status-pill" [class.status-open]="statusFilter === 'open'" [class.status-closed]="statusFilter === 'closed'">
-                  <span *ngIf="statusFilter === 'all'">Todos</span>
-                  <span *ngIf="statusFilter === 'open'">Operativos</span>
-                  <span *ngIf="statusFilter === 'closed'">Cerrados</span>
+                <div
+                  class="status-pill"
+                  [class.status-open]="statusFilter === 'OPEN'"
+                  [class.status-restricted]="statusFilter === 'RESTRICTED'"
+                  [class.status-closed]="statusFilter === 'CLOSED'"
+                >
+                  {{ getStatusFilterLabel(statusFilter) }}
                 </div>
               </div>
               <div id="nearby-ports-map" class="map-canvas"></div>
@@ -46,22 +49,32 @@ declare const VANTA: any
               <article class="ports-list-container">
                 <header class="ports-list-header">
                   <div>
-                    <h2>Directorio de Puertos</h2>
-                    <p>Consulta el estado operativo, contacto y servicios disponibles.</p>
+                    <h2>Información global de puertos</h2>
+                    <p>Datos reales del backend con el estado operativo y notas más recientes.</p>
                   </div>
                   <div class="search-container">
                     <input
                       type="text"
-                      placeholder="Buscar por nombre o país…"
+                      placeholder="Buscar por nombre o país"
                       [(ngModel)]="searchTerm"
                       (input)="applyFilters()"
                       class="search-input"
                     >
                   </div>
                   <div class="status-filters">
-                    <button type="button" class="status-chip" [class.active]="statusFilter === 'all'" (click)="setStatusFilter('all')">Todos</button>
-                    <button type="button" class="status-chip" [class.active]="statusFilter === 'open'" (click)="setStatusFilter('open')">Operativos</button>
-                    <button type="button" class="status-chip" [class.active]="statusFilter === 'closed'" (click)="setStatusFilter('closed')">Cerrados</button>
+                    <button
+                      type="button"
+                      class="status-chip"
+                      *ngFor="let option of statusOptions"
+                      [class.active]="statusFilter === option.value"
+                      (click)="setStatusFilter(option.value)"
+                    >
+                      {{ option.label }}
+                    </button>
+                  </div>
+                  <div class="sync-info" *ngIf="!loading">
+                    <span *ngIf="lastSyncedAt">Última sincronización: {{ lastSyncedAt | date:'medium' }}</span>
+                    <span>Mostrando {{ filteredPorts.length }} / {{ totalPorts || filteredPorts.length }} puertos</span>
                   </div>
                 </header>
 
@@ -78,7 +91,7 @@ declare const VANTA: any
                   <div
                     class="port-item"
                     *ngFor="let port of filteredPorts"
-                    [class.selected]="selectedPort?.id === port.id"
+                    [class.selected]="selectedPort?.portId === port.portId"
                     (click)="selectPort(port)"
                   >
                     <div class="port-header">
@@ -86,16 +99,25 @@ declare const VANTA: any
                         <h3 class="port-name">{{ port.name }}</h3>
                         <div class="port-meta">
                           <span class="port-country">{{ port.country }}</span>
-                          <span class="port-coords">{{ port.latitude | number:'1.2-2' }}, {{ port.longitude | number:'1.2-2' }}</span>
+                          <span class="port-coords">{{ port.lat | number:'1.2-2' }}, {{ port.lon | number:'1.2-2' }}</span>
                         </div>
                       </div>
-                      <span class="port-status" [class.status-open]="port.status === 'open'" [class.status-closed]="port.status === 'closed'">
-                        {{ port.status === 'open' ? 'Operativo' : 'Cerrado' }}
+                      <span class="port-status" [ngClass]="getStatusBadgeClass(port.status)">
+                        {{ getStatusLabel(port.status) }}
                       </span>
                     </div>
                     <div class="port-contact">
-                      <span>{{ port.contactInfo.phone }}</span>
-                      <span>{{ port.contactInfo.email }}</span>
+                      <span>Tráfico estimado: {{ formatTraffic(port.traffic) }}</span>
+                      <span *ngIf="port.reason; else statusNote">Nota: {{ port.reason }}</span>
+                      <ng-template #statusNote>
+                        <span>{{ getStatusLabel(port.status) }}</span>
+                      </ng-template>
+                      <span>
+                        Contacto:
+                        {{ port.contactPhone || "N/D" }}
+                        ·
+                        {{ port.contactEmail || "N/D" }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -105,56 +127,92 @@ declare const VANTA: any
                 </div>
               </article>
 
-              <article class="port-details-container">
-                <ng-container *ngIf="selectedPort as port; else emptyDetail">
-                  <div class="port-details-header">
-                    <h2>Detalles del Puerto</h2>
-                    <p>{{ port.name }}</p>
+              <article class="port-detail-container">
+                <header class="port-detail-header">
+                  <div>
+                    <h2>Detalle operativo</h2>
+                    <p>Selecciona un puerto para revisar notas, tráfico y últimas actualizaciones.</p>
                   </div>
-                  <div class="port-details-content">
+                </header>
+
+                <ng-container *ngIf="selectedPort as port; else emptyDetail">
+                  <div class="port-detail-card">
                     <section class="port-detail-section">
-                      <h3>Operación</h3>
+                      <div class="port-detail-heading">
+                        <h3>{{ port.name }}</h3>
+                        <span class="port-status" [ngClass]="getStatusBadgeClass(port.status)">
+                          {{ getStatusLabel(port.status) }}
+                        </span>
+                      </div>
+                      <p class="port-location">{{ port.country }} · {{ port.lat | number:'1.2-2' }}, {{ port.lon | number:'1.2-2' }}</p>
+                    </section>
+
+                    <section class="port-detail-section">
+                      <h3>Resumen operativo</h3>
                       <div class="detail-grid">
                         <div class="detail-item">
                           <span class="detail-label">Estado</span>
-                          <span class="detail-value" [class.text-open]="port.status === 'open'" [class.text-closed]="port.status === 'closed'">
-                            {{ port.status === 'open' ? 'Operativo' : 'Cerrado' }}
-                          </span>
+                          <span class="detail-value">{{ getStatusLabel(port.status) }}</span>
                         </div>
                         <div class="detail-item">
-                          <span class="detail-label">País / Región</span>
-                          <span class="detail-value">{{ port.country }}</span>
+                          <span class="detail-label">Tráfico estimado</span>
+                          <span class="detail-value">{{ formatTraffic(port.traffic) }}</span>
                         </div>
                         <div class="detail-item">
-                          <span class="detail-label">Calado máx.</span>
-                          <span class="detail-value">{{ port.maxDepth }} m</span>
+                          <span class="detail-label">Última actualización</span>
+                          <span class="detail-value">{{ port.updatedAt ? (port.updatedAt | date:'medium') : 'N/D' }}</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="port-detail-section">
+                      <h3>Coordenadas</h3>
+                      <div class="detail-grid compact">
+                        <div class="detail-item">
+                          <span class="detail-label">Latitud</span>
+                          <span class="detail-value">{{ port.lat | number:'1.4-4' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Longitud</span>
+                          <span class="detail-value">{{ port.lon | number:'1.4-4' }}</span>
                         </div>
                       </div>
                     </section>
 
                     <section class="port-detail-section">
                       <h3>Contacto</h3>
-                      <div class="detail-grid">
+                      <div class="detail-grid compact">
                         <div class="detail-item">
                           <span class="detail-label">Teléfono</span>
-                          <span class="detail-value">{{ port.contactInfo.phone }}</span>
+                          <span class="detail-value">{{ getContactValue(port.contactPhone) }}</span>
                         </div>
                         <div class="detail-item">
                           <span class="detail-label">Email</span>
-                          <span class="detail-value">{{ port.contactInfo.email }}</span>
+                          <span class="detail-value">{{ getContactValue(port.contactEmail) }}</span>
                         </div>
                         <div class="detail-item">
-                          <span class="detail-label">Canal VHF</span>
-                          <span class="detail-value">{{ port.contactInfo.vhfChannel }}</span>
+                          <span class="detail-label">Sitio web</span>
+                          <span class="detail-value">
+                            <a
+                              *ngIf="port.website as site; else noWebsite"
+                              class="port-link"
+                              [href]="site"
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              {{ site }}
+                            </a>
+                          </span>
+                          <ng-template #noWebsite>
+                            <span class="detail-value">N/D</span>
+                          </ng-template>
                         </div>
                       </div>
                     </section>
 
-                    <section class="port-detail-section">
-                      <h3>Servicios Disponibles</h3>
-                      <div class="chips">
-                        <span class="chip" *ngFor="let facility of port.facilities">{{ facility }}</span>
-                      </div>
+                    <section class="port-detail-section" *ngIf="port.reason">
+                      <h3>Notas operativas</h3>
+                      <p class="port-note">{{ port.reason }}</p>
                     </section>
                   </div>
                 </ng-container>
@@ -225,291 +283,330 @@ declare const VANTA: any
         margin-bottom: 1rem;
       }
 
-      .map-canvas {
-        width: 100%;
-        height: 420px;
-        border-radius: 1rem;
-        border: 1px solid #e0e7ff;
-        position: relative;
-        z-index: 0;
+      .map-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #0f172a;
       }
 
-      .nearby-port-icon .port-icon {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background-color: #1a73e8;
-        border: 2px solid #fff;
-        box-shadow: 0 0 4px rgba(0, 0, 0, 0.35);
+      .map-header p {
+        margin: 0.25rem 0 0;
+        color: #64748b;
       }
 
       .status-pill {
-        padding: 0.35rem 0.9rem;
+        padding: 0.35rem 0.85rem;
         border-radius: 999px;
         font-size: 0.85rem;
         font-weight: 600;
-        background: rgba(148, 163, 184, 0.2);
-        color: #475569;
+        text-transform: uppercase;
+        color: white;
+        background: #475569;
       }
 
       .status-pill.status-open {
-        background: rgba(16, 185, 129, 0.2);
-        color: #047857;
+        background: #15803d;
+      }
+
+      .status-pill.status-restricted {
+        background: #b45309;
       }
 
       .status-pill.status-closed {
-        background: rgba(248, 113, 113, 0.2);
-        color: #b91c1c;
+        background: #b91c1c;
+      }
+
+      .map-canvas {
+        width: 100%;
+        height: 420px;
+        border-radius: 0.75rem;
+        overflow: hidden;
       }
 
       .content-container {
         display: grid;
-        grid-template-columns: 1fr 0.9fr;
-        gap: 1.25rem;
-        padding: 1.5rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
       }
 
       .ports-list-container,
-      .port-details-container {
-        background: #fdfdfd;
+      .port-detail-container {
+        background: white;
         border-radius: 1rem;
-        padding: 1.25rem;
-        border: 1px solid #eef2ff;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+        padding: 1.5rem;
       }
 
       .ports-list-header h2 {
         margin: 0;
-        font-size: 1.2rem;
+        font-size: 1.35rem;
+        color: #0f172a;
       }
 
       .ports-list-header p {
-        margin: 0.25rem 0 0;
-        color: #6b7280;
-        font-size: 0.9rem;
+        margin: 0.35rem 0 1.25rem;
+        color: #64748b;
       }
 
       .search-container {
-        margin-top: 1rem;
-        width: 100%;
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
       }
 
       .search-input {
-        width: 100%;
-        padding: 0.65rem 0.85rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
+        flex: 1;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 0.65rem 1rem;
         font-size: 0.95rem;
+        background: #f8fafc;
       }
 
       .status-filters {
         display: flex;
         gap: 0.5rem;
-        margin-top: 0.75rem;
         flex-wrap: wrap;
+        margin-bottom: 0.75rem;
       }
 
       .status-chip {
-        border: 1px solid transparent;
-        padding: 0.35rem 0.9rem;
+        border: 1px solid #cbd5f5;
+        background: transparent;
         border-radius: 999px;
-        background: #f4f6fb;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.9rem;
+        font-weight: 500;
         color: #475569;
-        font-size: 0.85rem;
         cursor: pointer;
-        transition: all 120ms ease;
+        transition: all 150ms ease;
       }
 
       .status-chip.active {
         background: #0a6cbc;
-        color: #fff;
+        color: white;
         border-color: #0a6cbc;
       }
 
-      .ports-list {
-        margin-top: 1.25rem;
+      .sync-info {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
-        max-height: 520px;
+        font-size: 0.85rem;
+        color: #475569;
+        gap: 0.2rem;
+      }
+
+      .ports-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 480px;
         overflow-y: auto;
         padding-right: 0.5rem;
       }
 
       .port-item {
-        border: 1px solid #e5e7eb;
+        border: 1px solid #e2e8f0;
         border-radius: 1rem;
         padding: 1rem;
-        background: white;
+        transition: all 150ms ease;
         cursor: pointer;
-        transition: border-color 150ms ease, transform 150ms ease;
+        background: white;
       }
 
       .port-item:hover {
-        border-color: #0a6cbc;
-        transform: translateX(2px);
+        border-color: #94a3b8;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
       }
 
       .port-item.selected {
         border-color: #0a6cbc;
-        box-shadow: inset 0 0 0 1px rgba(10, 108, 188, 0.15);
+        box-shadow: 0 12px 30px rgba(10, 108, 188, 0.15);
       }
 
       .port-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 0.5rem;
+        gap: 1rem;
       }
 
       .port-name {
-        margin: 0;
-        font-size: 1.05rem;
+        margin: 0 0 0.35rem;
+        font-size: 1.1rem;
+        color: #0f172a;
       }
 
       .port-meta {
         display: flex;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        color: #6b7280;
-      }
-
-      .port-status {
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        background: rgba(148, 163, 184, 0.2);
+        gap: 0.75rem;
+        font-size: 0.9rem;
         color: #475569;
       }
 
+      .port-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: white;
+        background: #475569;
+        white-space: nowrap;
+      }
+
       .port-status.status-open {
-        background: rgba(16, 185, 129, 0.2);
-        color: #047857;
+        background: #16a34a;
+      }
+
+      .port-status.status-restricted {
+        background: #d97706;
       }
 
       .port-status.status-closed {
-        background: rgba(248, 113, 113, 0.2);
-        color: #b91c1c;
+        background: #dc2626;
       }
 
       .port-contact {
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: #4b5563;
         display: flex;
         flex-direction: column;
-        gap: 0.1rem;
+        gap: 0.35rem;
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: #475569;
       }
 
-      .loading-container,
       .no-ports,
-      .empty-detail,
+      .loading-container,
       .error-banner {
-        padding: 1rem;
         border-radius: 1rem;
+        padding: 1rem;
         text-align: center;
-        margin-top: 1.25rem;
-        background: rgba(99, 102, 241, 0.05);
-        border: 1px dashed #cbd5f5;
+        margin-top: 1rem;
       }
 
-      .error-banner {
-        border-color: rgba(248, 113, 113, 0.4);
-        color: #b91c1c;
-        background: rgba(248, 113, 113, 0.1);
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        color: #475569;
       }
 
       .spinner {
-        width: 30px;
-        height: 30px;
-        border: 3px solid rgba(37, 99, 235, 0.2);
-        border-top-color: #2563eb;
+        width: 32px;
+        height: 32px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #0a6cbc;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin: 0 auto 0.6rem;
       }
 
-      .port-details-header h2 {
+      .error-banner {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .no-ports {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      .port-detail-header h2 {
         margin: 0;
+        font-size: 1.35rem;
+        color: #0f172a;
       }
 
-      .port-details-header p {
-        margin: 0.25rem 0 0;
-        color: #6b7280;
+      .port-detail-header p {
+        margin: 0.35rem 0 0;
+        color: #64748b;
+      }
+
+      .port-detail-card {
+        margin-top: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
       }
 
       .port-detail-section {
-        margin-top: 1rem;
+        background: #f8fafc;
+        border-radius: 1rem;
+        padding: 1.25rem;
+      }
+
+      .port-detail-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .port-location {
+        margin: 0.35rem 0 0;
+        color: #475569;
       }
 
       .detail-grid {
         display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-top: 0.75rem;
+      }
+
+      .detail-grid.compact {
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 0.75rem;
       }
 
       .detail-item {
-        background: #f8fafc;
-        border-radius: 0.75rem;
-        padding: 0.75rem;
-        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
       }
 
       .detail-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-        display: block;
-        margin-bottom: 0.15rem;
+        font-size: 0.85rem;
+        color: #64748b;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
       .detail-value {
+        font-size: 1rem;
         font-weight: 600;
-        color: #111827;
+        color: #0f172a;
       }
 
-      .text-open {
-        color: #047857;
+      .port-note {
+        margin: 0.5rem 0 0;
+        color: #0f172a;
       }
 
-      .text-closed {
-        color: #b91c1c;
+      .port-link {
+        color: #0a6cbc;
+        text-decoration: underline;
       }
 
-      .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
+      .empty-detail {
+        border: 1px dashed #cbd5f5;
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        color: #475569;
+        margin-top: 1rem;
       }
 
-      .chip {
-        padding: 0.35rem 0.8rem;
+      .nearby-port-icon .port-icon {
+        width: 14px;
+        height: 14px;
         border-radius: 999px;
-        background: rgba(15, 23, 42, 0.08);
-        color: #1e293b;
-        font-size: 0.8rem;
-      }
-
-      @media (max-width: 1200px) {
-        .content-container {
-          grid-template-columns: 1fr;
-        }
-
-        .main-content {
-          margin-left: 0;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .nearby-ports-content {
-          padding: calc(70px + 1rem) 1rem 1rem;
-        }
-
-        .status-filters {
-          flex-direction: column;
-          align-items: flex-start;
-        }
+        border: 2px solid white;
+        background: #0a6cbc;
+        box-shadow: 0 4px 12px rgba(10, 108, 188, 0.45);
       }
 
       @keyframes spin {
@@ -518,61 +615,84 @@ declare const VANTA: any
         }
       }
 
-      :host-context(.dark-mode) .map-container,
-      :host-context(.dark-mode) .content-container,
-      :host-context(.dark-mode) .ports-list-container,
-      :host-context(.dark-mode) .port-details-container {
-        background: rgba(5, 12, 24, 0.94);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.7);
-        color: #e2e8f0;
+      @media (max-width: 1180px) {
+        .content-container {
+          grid-template-columns: 1fr;
+        }
+
+        .port-detail-card {
+          margin-top: 1rem;
+        }
       }
 
-      :host-context(.dark-mode) .map-header h2,
+      @media (max-width: 768px) {
+        .main-content {
+          margin-left: 0;
+        }
+
+        .nearby-ports-content {
+          padding: calc(70px + 1rem) 1rem 1rem;
+        }
+
+        .map-canvas {
+          height: 320px;
+        }
+      }
+
+      :host-context(.dark-mode) .map-container,
+      :host-context(.dark-mode) .ports-list-container,
+      :host-context(.dark-mode) .port-detail-container,
+      :host-context(.dark-mode) .port-item,
+      :host-context(.dark-mode) .port-detail-section {
+        background: rgba(15, 23, 42, 0.9);
+        color: #e2e8f0;
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+
       :host-context(.dark-mode) .ports-list-header h2,
-      :host-context(.dark-mode) .port-details-header h2 {
+      :host-context(.dark-mode) .port-detail-header h2 {
         color: #f8fafc;
       }
 
       :host-context(.dark-mode) .ports-list-header p,
-      :host-context(.dark-mode) .status-pill,
-      :host-context(.dark-mode) .port-meta,
-      :host-context(.dark-mode) .detail-label {
-        color: #a5b4fc;
+      :host-context(.dark-mode) .port-detail-header p,
+      :host-context(.dark-mode) .port-contact span,
+      :host-context(.dark-mode) .sync-info {
+        color: #cbd5f5;
       }
 
-      :host-context(.dark-mode) .status-pill {
-        background: rgba(56, 189, 248, 0.15);
-        border: 1px solid rgba(14, 165, 233, 0.3);
-      }
-
-      :host-context(.dark-mode) .status-pill.status-open {
-        background: rgba(16, 185, 129, 0.2);
-        color: #bbf7d0;
-      }
-
-      :host-context(.dark-mode) .status-pill.status-closed {
-        background: rgba(248, 113, 113, 0.2);
-        color: #fecaca;
-      }
-
-      :host-context(.dark-mode) input,
-      :host-context(.dark-mode) select,
-      :host-context(.dark-mode) textarea {
+      :host-context(.dark-mode) .search-input {
         background: rgba(8, 17, 31, 0.85);
         border: 1px solid rgba(59, 130, 246, 0.3);
         color: #f8fafc;
       }
 
+      :host-context(.dark-mode) .status-chip {
+        border-color: rgba(59, 130, 246, 0.4);
+        color: #e2e8f0;
+      }
+
       :host-context(.dark-mode) .port-item {
         background: rgba(8, 18, 40, 0.85);
         border-color: rgba(59, 130, 246, 0.2);
-        color: #e2e8f0;
       }
 
       :host-context(.dark-mode) .port-item.selected {
         border-color: rgba(59, 130, 246, 0.45);
         background: rgba(14, 23, 45, 0.95);
+      }
+
+      :host-context(.dark-mode) .detail-value {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .port-detail-section {
+        background: rgba(8, 17, 31, 0.85);
+      }
+
+      :host-context(.dark-mode) .empty-detail {
+        border-color: rgba(59, 130, 246, 0.35);
+        color: #cbd5f5;
       }
     `,
   ],
@@ -583,14 +703,29 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
     role: "Operaciones",
   }
 
-  ports: NearbyPort[] = []
-  filteredPorts: NearbyPort[] = []
-  selectedPort?: NearbyPort
+  ports: PortOverviewItem[] = []
+  filteredPorts: PortOverviewItem[] = []
+  selectedPort?: PortOverviewItem
+  totalPorts = 0
+  lastSyncedAt?: string
 
   loading = true
   errorMessage?: string
   searchTerm = ""
-  statusFilter: "all" | "open" | "closed" = "all"
+  statusFilter: PortFilter = "all"
+
+  private readonly statusLabels: Record<PortOperationalStatus, string> = {
+    OPEN: "Operativo",
+    RESTRICTED: "Restringido",
+    CLOSED: "Cerrado",
+  }
+
+  readonly statusOptions: { value: PortFilter; label: string }[] = [
+    { value: "all", label: "Todos" },
+    { value: "OPEN", label: "Operativos" },
+    { value: "RESTRICTED", label: "Restringidos" },
+    { value: "CLOSED", label: "Cerrados" },
+  ]
 
   private subscriptions = new Subscription()
   private map?: L.Map
@@ -623,22 +758,20 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe()
-    if (this.map) {
-      this.map.remove()
-    }
+    this.map?.remove()
     this.destroyVanta()
   }
 
-  setStatusFilter(filter: "all" | "open" | "closed"): void {
+  setStatusFilter(filter: PortFilter): void {
     if (this.statusFilter === filter) return
     this.statusFilter = filter
     this.applyFilters()
   }
 
-  selectPort(port: NearbyPort): void {
+  selectPort(port: PortOverviewItem): void {
     this.selectedPort = port
     if (this.map) {
-      this.map.setView([port.latitude, port.longitude], Math.max(this.map.getZoom(), 6))
+      this.map.setView([port.lat, port.lon], Math.max(this.map.getZoom(), 6))
     }
   }
 
@@ -656,23 +789,52 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
       return matchesTerm && matchesStatus
     })
 
-    if (this.filteredPorts.length > 0 && (!this.selectedPort || !this.filteredPorts.some((p) => p.id === this.selectedPort?.id))) {
+    if (
+      this.filteredPorts.length > 0 &&
+      (!this.selectedPort || !this.filteredPorts.some((p) => p.portId === this.selectedPort?.portId))
+    ) {
       this.selectedPort = this.filteredPorts[0]
     }
 
     this.refreshMapMarkers()
   }
 
-  private loadPorts(force = false): void {
+  formatTraffic(traffic?: number): string {
+    if (traffic === undefined || traffic === null) {
+      return "N/D"
+    }
+    return `${traffic.toLocaleString()} buques/día`
+  }
+
+  getContactValue(value?: string | null): string {
+    return value && value.trim().length > 0 ? value : "N/D"
+  }
+
+  getStatusLabel(status: PortOperationalStatus): string {
+    return this.statusLabels[status] ?? status
+  }
+
+  getStatusBadgeClass(status: PortOperationalStatus): string {
+    return `status-${status.toLowerCase()}`
+  }
+
+  getStatusFilterLabel(filter: PortFilter): string {
+    if (filter === "all") {
+      return "Todos"
+    }
+    return this.getStatusLabel(filter)
+  }
+
+  private loadPorts(): void {
     this.loading = true
     this.errorMessage = undefined
 
-    const source$ = force ? this.nearbyPortService.fetchPublicPorts() : this.nearbyPortService.fetchPublicPorts()
-
-    const sub = source$.subscribe({
-      next: (ports) => {
+    const sub = this.nearbyPortService.getPortOverview({ size: 50 }).subscribe({
+      next: (response) => {
         this.loading = false
-        this.ports = ports.filter((port) => this.isValidCoordinate(port.latitude, port.longitude))
+        this.lastSyncedAt = response.lastSyncedAt
+        this.totalPorts = response.totalElements
+        this.ports = response.content.filter((port) => this.isValidCoordinate(port.lat, port.lon))
         this.applyFilters()
         if (this.viewReady) {
           setTimeout(() => this.initMap(), 100)
@@ -693,9 +855,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
     const target = document.getElementById("nearby-ports-map")
     if (!target) return
 
-    if (this.map) {
-      this.map.remove()
-    }
+    this.map?.remove()
 
     const center = this.getDefaultCenter()
 
@@ -729,7 +889,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
     })
 
     this.filteredPorts.forEach((port) => {
-      const marker = L.marker([port.latitude, port.longitude], {
+      const marker = L.marker([port.lat, port.lon], {
         title: port.name,
         icon,
       }).addTo(this.map!)
@@ -738,7 +898,7 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
         <div class="port-popup">
           <strong>${port.name}</strong><br>
           ${port.country}<br>
-          Estado: ${port.status === "open" ? "Operativo" : "Cerrado"}
+          Estado: ${this.getStatusLabel(port.status)}
         </div>
       `)
 
@@ -746,17 +906,15 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.portMarkers.push(marker)
     })
 
-    const bounds = L.latLngBounds(this.filteredPorts.map((p) => [p.latitude, p.longitude] as [number, number]))
+    const bounds = L.latLngBounds(this.filteredPorts.map((p) => [p.lat, p.lon] as [number, number]))
     this.map.fitBounds(bounds.pad(0.3))
   }
 
   private getDefaultCenter(): [number, number] {
     if (!this.filteredPorts.length) return [0, 0]
 
-    const lat =
-      this.filteredPorts.reduce((sum, port) => sum + port.latitude, 0) / this.filteredPorts.length
-    const lon =
-      this.filteredPorts.reduce((sum, port) => sum + port.longitude, 0) / this.filteredPorts.length
+    const lat = this.filteredPorts.reduce((sum, port) => sum + port.lat, 0) / this.filteredPorts.length
+    const lon = this.filteredPorts.reduce((sum, port) => sum + port.lon, 0) / this.filteredPorts.length
 
     return [lat || 0, lon || 0]
   }

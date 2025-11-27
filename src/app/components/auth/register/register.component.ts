@@ -47,6 +47,38 @@ import { environment } from "../../../../environments/environment"
           </div>
 
           <div class="form-group">
+            <label for="email">Correo electrónico</label>
+            <div class="input-container">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="input-icon"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <polyline points="4,6 12,12 20,6"></polyline>
+              </svg>
+              <input
+                type="text"
+                id="email"
+                formControlName="email"
+                placeholder="Ingrese su correo electrónico"
+                [ngClass]="{'is-invalid': submitted && f['email'].errors}"
+              >
+            </div>
+            <div *ngIf="submitted && f['email'].errors" class="error-message">
+              <span *ngIf="f['email'].errors['email']">El nombre de usuario es requerido</span>
+              <span *ngIf="f['email'].errors['email']">El nombre de usuario debe tener al menos 3 caracteres</span>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label for="password">Contraseña</label>
             <div class="input-container">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
@@ -456,21 +488,22 @@ export class RegisterComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.registerForm = this.formBuilder.group(
-      {
-        username: ["", [Validators.required, Validators.minLength(3)]],
-        password: ["", [Validators.required, Validators.minLength(6)]],
-        confirmPassword: ["", Validators.required],
-        role: ["", Validators.required],
-        shippingCompany: [""],
-        customShippingCompany: [""],
-        terms: [false, Validators.requiredTrue],
-      },
-      {
-        validator: this.mustMatch("password", "confirmPassword"),
-      },
-    )
-  }
+  this.registerForm = this.formBuilder.group(
+    {
+      username: ["", [Validators.required, Validators.minLength(3)]],
+      email: ["", [Validators.required, Validators.email]],
+      password: ["", [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ["", Validators.required],
+      role: ["", Validators.required],
+      shippingCompany: [""],
+      customShippingCompany: [""],
+      terms: [false, Validators.requiredTrue],
+    },
+    {
+      validator: this.mustMatch("password", "confirmPassword"),
+    },
+  )
+}
 
   // Getter para acceder fácilmente a los campos del formulario
   get f() {
@@ -514,6 +547,7 @@ export class RegisterComponent implements OnInit {
     // Preparar los datos para el registro
     const registerData = {
       username: this.f["username"].value,
+      email: this.f["email"].value,            // 👈 NUEVO
       password: this.f["password"].value,
       roles: [this.f["role"].value],
       shippingCompany: finalShippingCompany || null, // Opcional

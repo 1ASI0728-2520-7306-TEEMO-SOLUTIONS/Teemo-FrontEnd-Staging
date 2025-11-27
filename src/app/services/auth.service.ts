@@ -5,6 +5,10 @@ import { catchError, map } from "rxjs/operators"
 import { Router } from "@angular/router"
 import { environment } from "../../environments/environment"
 
+export interface ConfirmRegistrationRequest {
+  token: string
+}
+
 export interface User {
   id: string
   username: string
@@ -30,6 +34,7 @@ export interface LoginResponse {
 export interface SignUpRequest {
   username: string
   password: string
+  email: string
   roles: string[]
 }
 
@@ -128,6 +133,27 @@ export class AuthService {
             error.error && error.error.message
               ? error.error.message
               : "Error interno del servidor. Por favor contacte al administrador."
+        } else if (error.status === 0) {
+          errorMessage = "No se pudo conectar al servidor. Verifique su conexión a internet."
+        }
+
+        return throwError(() => new Error(errorMessage))
+      }),
+    )
+  }
+
+  confirmRegistration(token: string) {
+    const body: ConfirmRegistrationRequest = { token }
+
+    return this.http.post<void>(`${this.apiUrl}/confirm`, body).pipe(
+      catchError((error) => {
+        console.error("Error durante la confirmación de registro:", error)
+        let errorMessage = "No se pudo confirmar el registro"
+
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message
+        } else if (error.status === 400) {
+          errorMessage = "El enlace de confirmación es inválido o ha expirado"
         } else if (error.status === 0) {
           errorMessage = "No se pudo conectar al servidor. Verifique su conexión a internet."
         }

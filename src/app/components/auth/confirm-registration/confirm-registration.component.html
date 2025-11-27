@@ -1,0 +1,24 @@
+<div class="confirm-container">
+  <h1>Confirmación de registro</h1>
+
+  <p *ngIf="!isError">
+    Haz clic en el siguiente botón para confirmar tu cuenta en Mushroom.
+  </p>
+
+  <p *ngIf="isError" class="error">
+    {{ message }}
+  </p>
+
+  <button
+    (click)="onConfirm()"
+    [disabled]="!token || isProcessing || isError"
+  >
+    Haz clic aquí para confirmar registro
+  </button>
+
+  <p *ngIf="message && !isError" class="success">
+    {{ message }}
+  </p>
+
+  <p *ngIf="isProcessing">Procesando tu confirmación...</p>
+</div>

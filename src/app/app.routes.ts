@@ -1,8 +1,13 @@
 import type { Routes } from "@angular/router"
 import { AuthGuard } from "./guards/auth.guard"
+import { ConfirmRegistrationComponent } from "./components/auth/confirm-registration/confirm-registration.component"
 
 export const routes: Routes = [
   { path: "", redirectTo: "dashboard", pathMatch: "full" },
+  {
+    path: "auth/confirm",
+    component: ConfirmRegistrationComponent,
+  },
   {
     path: "login",
     loadComponent: () => import("./components/auth/login/login.component").then((m) => m.LoginComponent),

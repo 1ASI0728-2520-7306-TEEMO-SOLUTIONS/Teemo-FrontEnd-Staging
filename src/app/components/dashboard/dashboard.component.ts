@@ -986,11 +986,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private mapPopularRouteResource(resource: PopularRouteResource | null | undefined, index: number): PopularRoute {
-    const safeOrigin = resource?.originPort?.trim() || "Origen desconocido"
-    const safeDestination = resource?.destinationPort?.trim() || "Destino desconocido"
-    const searchCount = resource?.searchCount ?? 0
-    const distance = resource?.distance?.trim() || "N/D"
-    const estimatedTime = resource?.estimatedTime?.trim() || "N/D"
+    const fallbackRoute =
+      this.fallbackPopularRoutes[index % this.fallbackPopularRoutes.length] ?? this.createFallbackRoute(index)
+
+    const originPort = this.normalizeText(resource?.originPort, fallbackRoute.originPort)
+    const destinationPort = this.normalizeText(resource?.destinationPort, fallbackRoute.destinationPort)
+    const searchCount = this.normalizeCount(resource?.searchCount, fallbackRoute.searchCount)
+    const distance = this.normalizeDistance(resource?.distance, fallbackRoute.distance)
+    const estimatedTime = this.normalizeText(resource?.estimatedTime, fallbackRoute.estimatedTime)
 
     let resolvedId = index + 1
     if (typeof resource?.routeId === "number" && Number.isFinite(resource.routeId)) {
@@ -1004,13 +1007,66 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     return {
       id: resolvedId,
-      name: `${safeOrigin} - ${safeDestination}`,
-      originPort: safeOrigin,
-      destinationPort: safeDestination,
+      name: `${originPort} - ${destinationPort}`,
+      originPort,
+      destinationPort,
       searchCount,
       distance,
       estimatedTime,
       popularity: this.resolvePopularityFromCount(searchCount),
+    }
+  }
+
+  private normalizeText(value: unknown, fallback: string): string {
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (trimmed.length > 0) {
+        return trimmed
+      }
+    }
+    return fallback
+  }
+
+  private normalizeDistance(value: unknown, fallback: string): string {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? `${value.toLocaleString()} nm` : fallback
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (trimmed.length > 0) {
+        return trimmed
+      }
+    }
+
+    return fallback
+  }
+
+  private normalizeCount(value: unknown, fallback: number): number {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+      return value
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number.parseInt(value, 10)
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return parsed
+      }
+    }
+
+    return fallback
+  }
+
+  private createFallbackRoute(index: number): PopularRoute {
+    return {
+      id: index + 1,
+      name: "Ruta sin datos",
+      originPort: "Origen desconocido",
+      destinationPort: "Destino desconocido",
+      searchCount: 0,
+      distance: "N/D",
+      estimatedTime: "N/D",
+      popularity: "low",
     }
   }
 

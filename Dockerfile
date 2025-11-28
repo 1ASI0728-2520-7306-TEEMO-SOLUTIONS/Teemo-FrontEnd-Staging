@@ -1,32 +1,45 @@
-# Stage 1: Build the Angular application
-FROM node:18-alpine as build
+# syntax = docker/dockerfile:1
 
-# Set the working directory
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=20.18.0
+FROM node:${NODE_VERSION}-slim AS base
+
+LABEL fly_launch_runtime="Node.js"
+
+# Node.js app lives here
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
+# Set production environment
+ENV NODE_ENV="production"
 
-# Install dependencies
-RUN npm install
 
-# Copy the rest of the application files
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+
+# Install node modules
+COPY package-lock.json package.json ./
+RUN npm ci --include=dev
+
+# Copy application code
 COPY . .
 
-# Build the application for production
-RUN npm run build -- --configuration production
+# Build application
+RUN npm run build
 
-# Stage 2: Serve the application from a lightweight web server
-FROM nginx:1.25-alpine
+# Remove development dependencies
+RUN npm prune --omit=dev
 
-# Copy the built application from the build stage
-COPY --from=build /app/dist/front-end-teemo/browser /usr/share/nginx/html
 
-# Copy the nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Final stage for app image
+FROM base
 
-# Expose port 80
-EXPOSE 80
+# Copy built application
+COPY --from=build /app /app
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]

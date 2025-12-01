@@ -3,9 +3,12 @@ import { CommonModule } from "@angular/common"
 import { RouterModule } from "@angular/router"
 import { AuthService } from "../../../services/auth.service"
 import { ThemeService } from "../../../services/theme.service"
+import { NotificationService, type NotificationResource } from "../../../services/notification.service"
 import { SurveyModalComponent } from "../survey-modal/survey-modal.component"
 import { PortAdminModalComponent } from "../port-admin-modal/port-admin-modal.component"
 import { ConfigurationModalComponent } from "../configuration-modal/configuration-modal.component"
+
+type HeaderNotification = NotificationResource
 
 @Component({
   selector: "app-header",
@@ -26,7 +29,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
           <div class="title-row">
             <div class="title-stack">
               <div class="title-main">
-                <!-- Logo en data URI PNG (placeholder). Reemplazar por assets/logo.png si añades el archivo) -->
+                <!-- Logo en data URI PNG (placeholder). Reemplazar por assets/logo.png si anades el archivo) -->
                 <img src="assets/Teemo-hongo-logo.png" alt="Logo" class="header-logo" />
                 <div class="title-text">
                   <h1 class="page-title">{{ pageTitle }}</h1>
@@ -80,16 +83,40 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
               <!-- Notifications Dropdown -->
               <div class="notifications-panel" *ngIf="showNotifications" (click)="$event.stopPropagation()">
                 <div class="notifications-header">
-                  <h3>Notificaciones</h3>
-                  <button class="close-notifications" (click)="closeNotifications()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
+                  <div>
+                    <h3>Notificaciones</h3>
+                    <p class="notifications-subtitle">
+                      {{ unreadNotifications > 0 ? unreadNotifications + " pendientes" : "Todo al dia" }}
+                    </p>
+                  </div>
+                  <div class="notifications-header-actions">
+                    <button
+                      class="mark-all-btn"
+                      type="button"
+                      (click)="markAllNotificationsAsRead()"
+                      [disabled]="unreadNotifications === 0 || markAllInProgress"
+                    >
+                      {{ markAllInProgress ? "Marcando..." : "Marcar todas" }}
+                    </button>
+                    <button class="close-notifications" (click)="closeNotifications()" type="button" aria-label="Cerrar notificaciones">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="notifications-content">
+                  <div class="notifications-status" *ngIf="notificationsLoading && notifications.length === 0">
+                    Cargando notificaciones...
+                  </div>
+
+                  <div class="notifications-status error" *ngIf="notificationsError">
+                    {{ notificationsError }}
+                    <button type="button" (click)="loadNotifications(true)" [disabled]="notificationsLoading">Reintentar</button>
+                  </div>
+
                   <!-- Survey Notification -->
                   <div class="notification-item survey-notification" *ngIf="showSurveyNotification">
                     <div class="notification-icon survey-icon">
@@ -103,7 +130,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
                     </div>
                     <div class="notification-content">
                       <h4>Encuesta de Mejoras</h4>
-                      <p>Ayúdanos a mejorar la plataforma con tu feedback. Solo toma 2 minutos.</p>
+                      <p>Ayudanos a mejorar la plataforma con tu feedback. Solo toma 2 minutos.</p>
                       <div class="notification-actions">
                         <button class="btn-survey" (click)="openSurvey()">Responder Encuesta</button>
                         <button class="btn-dismiss" (click)="dismissSurveyNotification()">Descartar</button>
@@ -111,30 +138,77 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
                     </div>
                   </div>
 
-                  <!-- Regular Notifications -->
-                  <div class="notification-item" *ngFor="let notification of notifications">
-                    <div class="notification-icon" [ngClass]="notification.type">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                      </svg>
+                  <!-- Backend Notifications -->
+                  <ng-container *ngIf="notifications.length > 0">
+                    <div
+                      class="notification-item"
+                      *ngFor="let notification of notifications; trackBy: trackNotificationById"
+                      [class.unread]="!notification.read"
+                      [class.notification-disabled]="notification.action === 'DISABLED'"
+                      [class.notification-enabled]="notification.action === 'ENABLED'"
+                      (click)="handleNotificationClick(notification)"
+                    >
+                      <div class="notification-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                      </div>
+                      <div class="notification-content">
+                        <div class="notification-content-header">
+                          <div>
+                            <h4>{{ notification.title }}</h4>
+                            <p class="notification-meta" *ngIf="notification.portName || notification.performedBy">
+                              <ng-container *ngIf="notification.portName">Puerto {{ notification.portName }}</ng-container>
+                              <ng-container *ngIf="notification.portName && notification.performedBy">
+                                <span class="notification-meta-separator" aria-hidden="true">&bull;</span>
+                              </ng-container>
+                              <ng-container *ngIf="notification.performedBy">Por {{ notification.performedBy }}</ng-container>
+                            </p>
+                          </div>
+                          <span class="notification-action-pill" *ngIf="notification.action">
+                            {{ notification.action === "DISABLED" ? "Deshabilitado" : notification.action === "ENABLED" ? "Habilitado" : notification.action }}
+                          </span>
+                        </div>
+                        <p>{{ notification.message }}</p>
+                        <div class="notification-footer">
+                          <span class="notification-time">{{ formatRelativeTime(notification.createdAt) }}</span>
+                          <button
+                            class="mark-read-btn"
+                            type="button"
+                            (click)="markNotificationAsRead(notification); $event.stopPropagation()"
+                            *ngIf="!notification.read"
+                          >
+                            Marcar como leida
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div class="notification-content">
-                      <h4>{{ notification.title }}</h4>
-                      <p>{{ notification.message }}</p>
-                      <span class="notification-time">{{ notification.time }}</span>
-                    </div>
-                  </div>
+                  </ng-container>
 
                   <!-- Empty state -->
-                  <div class="empty-notifications" *ngIf="notifications.length === 0 && !showSurveyNotification">
+                  <div
+                    class="empty-notifications"
+                    *ngIf="!notificationsLoading && notifications.length === 0 && !showSurveyNotification && !notificationsError"
+                  >
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                       <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>
                     <p>No hay notificaciones nuevas</p>
                   </div>
+                </div>
+
+                <div class="notifications-footer" *ngIf="notifications.length > 0">
+                  <button
+                    class="load-more-btn"
+                    type="button"
+                    (click)="loadNotifications()"
+                    [disabled]="notificationsLoading || !notificationsHasNext"
+                  >
+                    {{ notificationsHasNext ? (notificationsLoading ? "Cargando..." : "Ver mas") : "Sin mas registros" }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -146,7 +220,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
               </svg>
             </button>
 
-            <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+            <button class="logout-btn" (click)="logout()" title="Cerrar sesion">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -196,7 +270,7 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         right: 0;
         left: 80px;
         z-index: 50;
-        overflow: hidden;
+        overflow: visible; /* allow dropdown layers (notifications, menus) to escape the header bounds */
         transition: left 250ms ease, background 300ms ease;
 
         &.sidebar-expanded {
@@ -484,6 +558,63 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         color: #0f172a;
       }
 
+      .notifications-subtitle {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #64748b;
+      }
+
+      .notifications-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .mark-all-btn {
+        border: 1px solid #cbd5f5;
+        background: rgba(59, 130, 246, 0.08);
+        color: #1d4ed8;
+        border-radius: 9999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 150ms ease;
+      }
+
+      .mark-all-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .notifications-status {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.85rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .notifications-status.error {
+        color: #dc2626;
+        background: rgba(248, 113, 113, 0.12);
+      }
+
+      .notifications-status button {
+        border: none;
+        background: none;
+        color: #2563eb;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .notifications-status button[disabled] {
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+
       .close-notifications {
         display: flex;
         align-items: center;
@@ -524,6 +655,27 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         border-bottom: none;
       }
 
+      .notification-item.unread {
+        background-color: rgba(79, 70, 229, 0.05);
+      }
+
+      .notification-item.notification-disabled {
+        border-left: 4px solid rgba(248, 113, 113, 0.6);
+      }
+
+      .notification-item.notification-enabled {
+        border-left: 4px solid rgba(34, 197, 94, 0.6);
+      }
+      .notification-item.notification-disabled .notification-action-pill {
+        background-color: rgba(248, 113, 113, 0.15);
+        color: #b91c1c;
+      }
+
+      .notification-item.notification-enabled .notification-action-pill {
+        background-color: rgba(34, 197, 94, 0.2);
+        color: #15803d;
+      }
+
       .notification-icon {
         flex-shrink: 0;
         width: 32px;
@@ -546,6 +698,13 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         min-width: 0;
       }
 
+      .notification-content-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
       .notification-content h4 {
         margin: 0 0 0.25rem 0;
         font-size: 0.875rem;
@@ -560,9 +719,51 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         line-height: 1.4;
       }
 
+      .notification-meta {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+
+      .notification-meta-separator {
+        display: inline-block;
+        margin: 0 0.35rem;
+        color: inherit;
+      }
+
       .notification-time {
         font-size: 0.75rem;
         color: #9ca3af;
+      }
+
+      .notification-action-pill {
+        border-radius: 9999px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background-color: #e2e8f0;
+        color: #0f172a;
+        white-space: nowrap;
+      }
+
+      .notification-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .mark-read-btn {
+        border: none;
+        background: none;
+        color: #2563eb;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .mark-read-btn:hover {
+        text-decoration: underline;
       }
 
       .notification-actions {
@@ -629,6 +830,29 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         font-size: 0.875rem;
       }
 
+      .notifications-footer {
+        border-top: 1px solid #e2e8f0;
+        padding: 0.75rem 1.5rem;
+      }
+
+      .load-more-btn {
+        width: 100%;
+        border: 1px solid #cbd5f5;
+        background: white;
+        color: #2563eb;
+        font-weight: 600;
+        border-radius: 9999px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 150ms ease;
+      }
+
+      .load-more-btn:disabled {
+        cursor: not-allowed;
+        color: #94a3b8;
+        border-color: #e2e8f0;
+      }
+
       @keyframes shimmer {
         0% { transform: scaleX(0); opacity: 0.4; }
         50% { transform: scaleX(1); opacity: 1; }
@@ -681,12 +905,58 @@ import { ConfigurationModalComponent } from "../configuration-modal/configuratio
         color: #f1f5f9;
       }
 
+      :host-context(.dark-mode) .notifications-subtitle {
+        color: #94a3b8;
+      }
+
+      :host-context(.dark-mode) .mark-all-btn {
+        background: rgba(79, 70, 229, 0.2);
+        border-color: rgba(129, 140, 248, 0.45);
+        color: #c7d2fe;
+      }
+
+      :host-context(.dark-mode) .notifications-status {
+        color: #cbd5f5;
+        background: rgba(15, 23, 42, 0.7);
+      }
+
+      :host-context(.dark-mode) .notifications-status.error {
+        background: rgba(239, 68, 68, 0.15);
+      }
+
+      :host-context(.dark-mode) .notifications-status button {
+        color: #93c5fd;
+      }
+
       :host-context(.dark-mode) .notification-item {
         border-bottom-color: #334155;
       }
 
       :host-context(.dark-mode) .notification-item:hover {
         background-color: #334155;
+      }
+
+      :host-context(.dark-mode) .notification-item.unread {
+        background-color: rgba(79, 70, 229, 0.3);
+      }
+
+      :host-context(.dark-mode) .notification-action-pill {
+        background-color: rgba(148, 163, 184, 0.35);
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .mark-read-btn {
+        color: #93c5fd;
+      }
+
+      :host-context(.dark-mode) .notifications-footer {
+        border-top-color: #334155;
+      }
+
+      :host-context(.dark-mode) .load-more-btn {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(148, 163, 184, 0.35);
+        color: #bfdbfe;
       }
 
       :host-context(.dark-mode) .notification-content h4 {
@@ -819,20 +1089,41 @@ export class HeaderComponent {
   showPortAdminModal = false
   showConfigModal = false
 
-  notifications = [
+  notifications: HeaderNotification[] = []
+  unreadNotifications = 0
+  notificationsLoading = false
+  notificationsError: string | null = null
+  notificationsHasNext = true
+  markAllInProgress = false
+
+  private notificationsPage = 0
+  private readonly notificationsLimit = 10
+  private notificationsRequested = false
+  private lastNotificationsRefresh = 0
+  private readonly notificationsRefreshIntervalMs = 30000
+  private readonly fallbackNotifications: HeaderNotification[] = [
     {
-      title: "Actualización del Sistema",
-      message: "Nueva versión disponible con mejoras de rendimiento.",
-      time: "Hace 2 horas",
-      type: "info",
+      id: "fallback-1",
+      type: "PORT_STATUS_CHANGE",
+      title: "Puerto Callao deshabilitado",
+      message: "El puerto Callao quedo inoperativo por mantenimiento programado.",
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      action: "DISABLED",
+      portName: "Callao",
     },
     {
-      title: "Ruta Completada",
-      message: "El viaje de Callao a Valparaíso se completó exitosamente.",
-      time: "Hace 4 horas",
-      type: "success",
+      id: "fallback-2",
+      type: "PORT_STATUS_CHANGE",
+      title: "Puerto Valparaiso habilitado",
+      message: "El puerto Valparaiso volvio a operaciones normales.",
+      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      read: true,
+      action: "ENABLED",
+      portName: "Valparaiso",
     },
   ]
+  private readonly notificationOrder: "asc" | "desc" = "desc"
 
   get canManagePorts(): boolean {
     return this.userHasRole("ROLE_OPERATOR") || this.userHasRole("ROLE_ADMIN")
@@ -841,6 +1132,7 @@ export class HeaderComponent {
   constructor(
       private authService: AuthService,
       private themeService: ThemeService,
+      private notificationService: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -848,6 +1140,8 @@ export class HeaderComponent {
     this.themeService.isDarkMode$.subscribe((isDark) => {
       this.isDarkMode = isDark
     })
+
+    this.requestInitialNotifications()
 
     // Check if survey was already completed
     const surveyCompleted = localStorage.getItem("survey_completed")
@@ -889,6 +1183,14 @@ export class HeaderComponent {
 
   toggleNotifications(): void {
     this.showNotifications = !this.showNotifications
+
+    if (this.showNotifications) {
+      if (!this.notificationsRequested) {
+        this.requestInitialNotifications()
+      } else if (!this.notificationsLoading) {
+        this.refreshNotificationsIfNeeded()
+      }
+    }
   }
 
   closeNotifications(): void {
@@ -912,8 +1214,221 @@ export class HeaderComponent {
     localStorage.setItem("survey_dismissed", new Date().toISOString())
   }
 
+  loadNotifications(reset = false): void {
+    if (this.notificationsLoading) {
+      return
+    }
+
+    if (reset) {
+      this.notificationsPage = 0
+      this.notificationsHasNext = true
+      this.notifications = []
+    } else if (!this.notificationsHasNext) {
+      return
+    }
+
+    const pageToRequest = this.notificationsPage
+    this.notificationsRequested = true
+    this.notificationsLoading = true
+    this.notificationsError = null
+
+    this.notificationService
+      .getNotifications({ page: pageToRequest, limit: this.notificationsLimit, order: this.notificationOrder })
+      .subscribe({
+        next: (response) => {
+          const normalized = (response.items ?? []).map((item) => this.mapNotificationResource(item))
+          this.notifications = reset ? normalized : [...this.notifications, ...normalized]
+
+          let hasNext: boolean
+          if (typeof response.hasNext === "boolean") {
+            hasNext = response.hasNext
+          } else if (typeof response.totalPages === "number") {
+            hasNext = pageToRequest + 1 < response.totalPages
+          } else {
+            hasNext = normalized.length === this.notificationsLimit
+          }
+
+          this.notificationsHasNext = hasNext
+          this.notificationsPage = pageToRequest + 1
+          if (reset) {
+            this.lastNotificationsRefresh = Date.now()
+          }
+
+          if (this.notifications.length === 0 && this.fallbackNotifications.length > 0) {
+            this.notifications = [...this.fallbackNotifications]
+            this.notificationsHasNext = false
+          }
+
+          this.notificationsLoading = false
+          this.updateUnreadCount()
+        },
+        error: (error) => {
+          this.notificationsLoading = false
+          this.notificationsError = error?.message || "No se pudieron cargar las notificaciones."
+
+          if (this.notifications.length === 0) {
+            this.notifications = [...this.fallbackNotifications]
+          }
+
+          this.notificationsHasNext = false
+          this.updateUnreadCount()
+        },
+      })
+  }
+
+  handleNotificationClick(notification: HeaderNotification): void {
+    if (!notification || notification.read) {
+      return
+    }
+    this.markNotificationAsRead(notification)
+  }
+
+  markNotificationAsRead(notification: HeaderNotification): void {
+    if (!notification || notification.read) {
+      return
+    }
+
+    if (this.isFallbackNotification(notification)) {
+      notification.read = true
+      this.updateUnreadCount()
+      return
+    }
+
+    notification.read = true
+    this.updateUnreadCount()
+
+    this.notificationService.markAsRead(notification.id).subscribe({
+      error: (error) => {
+        this.notificationsError = error?.message || "No se pudo actualizar la notificacion."
+        notification.read = false
+        this.updateUnreadCount()
+      },
+    })
+  }
+
+  markAllNotificationsAsRead(): void {
+    const pendingIds = this.notifications
+      .filter((notification) => !notification.read && !this.isFallbackNotification(notification))
+      .map((notification) => notification.id)
+
+    if (pendingIds.length === 0) {
+      this.notifications.forEach((notification) => {
+        if (this.isFallbackNotification(notification)) {
+          notification.read = true
+        }
+      })
+      this.updateUnreadCount()
+      return
+    }
+
+    const affectedIds = new Set(pendingIds)
+    this.notifications.forEach((notification) => {
+      if (affectedIds.has(notification.id)) {
+        notification.read = true
+      }
+    })
+    this.updateUnreadCount()
+
+    this.markAllInProgress = true
+    this.notificationService.markManyAsRead(pendingIds).subscribe({
+      next: () => {
+        this.markAllInProgress = false
+        this.updateUnreadCount()
+      },
+      error: (error) => {
+        this.notificationsError = error?.message || "No se pudieron marcar las notificaciones."
+        this.notifications.forEach((notification) => {
+          if (affectedIds.has(notification.id)) {
+            notification.read = false
+          }
+        })
+        this.markAllInProgress = false
+        this.updateUnreadCount()
+      },
+    })
+  }
+
+  trackNotificationById(index: number, notification: HeaderNotification): string {
+    return notification?.id ?? `notification-${index}`
+  }
+
+  formatRelativeTime(dateIso?: string | null): string {
+    if (!dateIso) {
+      return "Hace instantes"
+    }
+
+    const date = new Date(dateIso)
+    if (Number.isNaN(date.getTime())) {
+      return "Hace instantes"
+    }
+
+    const diff = Date.now() - date.getTime()
+    const minute = 60 * 1000
+    const hour = 60 * minute
+    const day = 24 * hour
+
+    if (diff < minute) {
+      return "Hace instantes"
+    }
+
+    if (diff < hour) {
+      const minutes = Math.round(diff / minute)
+      return `Hace ${minutes} min${minutes === 1 ? "" : "s"}`
+    }
+
+    if (diff < day) {
+      const hours = Math.round(diff / hour)
+      return `Hace ${hours} h`
+    }
+
+    const days = Math.round(diff / day)
+    return `Hace ${days} d`
+  }
+
+  private requestInitialNotifications(): void {
+    if (this.notificationsRequested) {
+      return
+    }
+
+    this.notificationsRequested = true
+    this.loadNotifications(true)
+  }
+
+  private refreshNotificationsIfNeeded(force = false): void {
+    if (force || Date.now() - this.lastNotificationsRefresh > this.notificationsRefreshIntervalMs) {
+      this.loadNotifications(true)
+    }
+  }
+
+  private updateUnreadCount(): void {
+    this.unreadNotifications = this.notifications.filter((notification) => !notification.read && !this.isFallbackNotification(notification)).length
+  }
+
+  private mapNotificationResource(resource: NotificationResource): HeaderNotification {
+    const fallbackTitle = "Actualizacion del sistema"
+    const fallbackMessage = "Consulta los detalles completos en el panel de operaciones."
+    const normalizedTitle =
+      typeof resource.title === "string" && resource.title.trim().length > 0 ? resource.title.trim() : fallbackTitle
+    const normalizedMessage =
+      typeof resource.message === "string" && resource.message.trim().length > 0 ? resource.message.trim() : fallbackMessage
+    const normalizedId = resource.id && resource.id.length > 0 ? resource.id : `notification-${Date.now()}-${Math.random()}`
+
+    return {
+      ...resource,
+      id: normalizedId,
+      title: normalizedTitle,
+      message: normalizedMessage,
+      createdAt: resource.createdAt ?? new Date().toISOString(),
+      read: Boolean(resource.read),
+    }
+  }
+
+  private isFallbackNotification(notification: HeaderNotification): boolean {
+    return notification?.id?.startsWith("fallback-") ?? false
+  }
+
   getTotalNotifications(): number {
-    let count = this.notifications.length
+    let count = this.unreadNotifications
     if (this.showSurveyNotification) {
       count += 1
     }
@@ -937,6 +1452,8 @@ export class HeaderComponent {
   }
 
   get subtitleText(): string {
-    return this.subtitle?.trim() || "Orquestando rutas inteligentes y logística avanzada"
+    return this.subtitle?.trim() || "Orquestando rutas inteligentes y logistica avanzada"
   }
 }
+
+

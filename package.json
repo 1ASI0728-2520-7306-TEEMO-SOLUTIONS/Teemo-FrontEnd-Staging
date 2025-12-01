@@ -11,7 +11,9 @@
     "update-continents": "node --loader ts-node/esm src/scripts/update-continents-data.ts",
     "update-continents-low": "node --loader ts-node/esm src/scripts/update-continents-data.ts low",
     "update-continents-high": "node --loader ts-node/esm src/scripts/update-continents-data.ts high",
-    "validate-continents": "node --loader ts-node/esm src/scripts/validate-continents.ts"
+    "validate-continents": "node --loader ts-node/esm src/scripts/validate-continents.ts",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy"
   },
   "private": true,
   "dependencies": {
@@ -25,6 +27,7 @@
     "@turf/turf": "^7.2.0",
     "animejs": "^4.0.2",
     "bcrypt": "^5.1.1",
+    "firebase-tools": "^14.26.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",

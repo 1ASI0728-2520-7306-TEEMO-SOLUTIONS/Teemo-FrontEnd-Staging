@@ -31,10 +31,23 @@ ng generate --help
 To build the project run:
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+This compiles the Angular application with the production configuration and writes the browser bundle to `dist/front-end-teemo/browser`, which is also the directory published to Firebase Hosting.
+
+Component-level CSS budgets are configured at 10 kB (warning) / 16 kB (error) inside `angular.json`, so if a future component legitimately needs more styles you can adjust those limits in the same file.
+
+## Firebase Hosting workflow
+
+The Firebase CLI is already connected to the `teemo-routing-staging` project (`.firebaserc`). The hosting config (`firebase.json`) points to `dist/front-end-teemo/browser`, and the npm scripts below run the production build before pushing files.
+
+- **First-time setup:** make sure you are authenticated with the correct Google account by running `firebase login`.
+- **Production deploy:** run `npm run deploy:hosting`. This compiles the Angular app and then pushes the updated assets to Hosting.
+- **Preview URLs:** run `npm run deploy:preview -- <channel-name> [--expires <duration>]` to publish a temporary channel (for example `npm run deploy:preview -- feature-eta --expires 7d`). The script builds before publishing so the preview matches production bits.
+- **Local verification (optional):** after `npm run build`, you can run `firebase emulators:start --only hosting` to test the exact files that Hosting will serve.
+
+All of these commands rely on the Firebase CLI installed in `node_modules`, so no global installation is required.
 
 ## Running unit tests
 

@@ -117,6 +117,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map?: L.Map
   private ports: Port[] = []
   private portMarkers: L.Marker[] = []
+  private readonly worldBounds = L.latLngBounds([-85, -180], [85, 180])
   private defaultCenter: L.LatLngExpression = [20, 0]
   private defaultZoom = 2
 
@@ -158,6 +159,8 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       attributionControl: false,
       minZoom: 2,
       worldCopyJump: true,
+      maxBounds: this.worldBounds,
+      maxBoundsViscosity: 0.75,
     }).setView(this.defaultCenter, this.defaultZoom)
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

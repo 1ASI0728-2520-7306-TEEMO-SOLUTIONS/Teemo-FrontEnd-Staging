@@ -74,6 +74,8 @@ interface LineSegment {
   end: { lat: number; lng: number }
 }
 
+type RiskLevel = "low" | "medium" | "high"
+
 @Component({
   selector: "app-route-animation",
   standalone: true,
@@ -859,9 +861,11 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   @Input() destinationPortId: string | null = null
   @Input() routeData: RouteCalculationResource | null = null
   @Input() routeId: string | null = null
+  @Input() riskLevel: RiskLevel = "low"
   @Output() backRequested = new EventEmitter<void>()
 
   private map: L.Map | null = null
+  private readonly worldBounds = L.latLngBounds([-85, -180], [85, 180])
   private shipMarkers: L.Marker[] = [] // Array of ship markers for different world copies
   private routePolylines: L.Polyline[] = [] // Array of route polylines for different world copies
   private traveledPolylines: L.Polyline[] = [] // Array of traveled polylines for different world copies
@@ -898,6 +902,26 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     intersections: number
     curveDirection: number
   } | null = null
+
+  private getRouteColor(): string {
+    switch (this.riskLevel) {
+      case "high":
+        return "#ef4444"
+      case "medium":
+        return "#facc15"
+      default:
+        return "#16a34a"
+    }
+  }
+
+  private refreshRouteColors(): void {
+    if (this.traveledPolylines.length === 0) {
+      return
+    }
+
+    const baseColor = this.getRouteColor()
+    this.traveledPolylines.forEach((polyline) => polyline.setStyle({ color: baseColor, opacity: 0.9 }))
+  }
 
   // Iconos personalizados
   private shipIcon = L.divIcon({
@@ -968,6 +992,10 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
       }
       this.processRouteData()
       this.evaluatePortsAvailability()
+    }
+
+    if (changes["riskLevel"] && !changes["riskLevel"].firstChange) {
+      this.refreshRouteColors()
     }
   }
 
@@ -1051,7 +1079,12 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
 
   private initializeMap(): void {
     // Inicializar el mapa con worldCopyJump habilitado para mejor manejo del antimeridiano
-    this.map = L.map("route-map", { worldCopyJump: true }).setView([20, 0], 2)
+    this.map = L.map("route-map", {
+      worldCopyJump: true,
+      minZoom: 2,
+      maxBounds: this.worldBounds,
+      maxBoundsViscosity: 0.75,
+    }).setView([20, 0], 2)
 
     // Añadir capa de mapa
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -2131,7 +2164,7 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     const routeOptions = {
       color: "#cbd5e1",
       weight: 4,
-      opacity: 0.7,
+      opacity: 0.45,
       noClip: true,
     }
 
@@ -2158,8 +2191,9 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   private createTraveledPolylines(): void {
     if (!this.map) return
 
+    const baseColor = this.getRouteColor()
     const traveledOptions = {
-      color: "#0a6cbc",
+      color: baseColor,
       weight: 4,
       opacity: 0.9,
       noClip: true,
@@ -2205,6 +2239,7 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
         this.traveledPolylines[2].setLatLngs(traveledPointsWest)
       }
     }
+    this.refreshRouteColors()
   }
 
   private startAnimation(): void {

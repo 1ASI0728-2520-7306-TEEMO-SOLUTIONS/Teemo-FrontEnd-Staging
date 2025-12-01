@@ -40,7 +40,6 @@ type NotificationChannel = NotificationPreferences["channel"]
             </svg>
             Preferencias personales
           </button>
-
           <button
             *ngIf="canManagePorts"
             type="button"
@@ -60,8 +59,8 @@ type NotificationChannel = NotificationPreferences["channel"]
               <div class="card-header decorated">
                 <span class="chip chip-primary">Tema</span>
                 <div>
-                  <h3>Personaliza la apariencia</h3>
-                  <p class="support-text">Define un modo operativo para cada jornada.</p>
+                  <h3>Modo de visualización</h3>
+                  <p class="support-text">Activa el modo claro u oscuro según tus necesidades.</p>
                 </div>
               </div>
 
@@ -77,113 +76,16 @@ type NotificationChannel = NotificationPreferences["channel"]
                       <input type="radio" name="themeMode" value="dark" [(ngModel)]="themeConfig.mode" (change)="updateTheme()">
                       <span>Oscuro</span>
                     </label>
-                    <label class="radio-option">
-                      <input type="radio" name="themeMode" value="auto" [(ngModel)]="themeConfig.mode" (change)="updateTheme()">
-                      <span>Automatico</span>
-                    </label>
                   </div>
                 </div>
 
                 <div class="theme-preview">
                   <div class="preview-panel">
                     <span class="preview-badge">Vista previa</span>
-                    <h4>{{ modeTitle }}</h4>
-                    <p>{{ modeDescription }}</p>
+                    <h4>{{ themeConfig.mode === 'dark' ? 'Modo Oscuro' : 'Modo Claro' }}</h4>
+                    <p>{{ themeConfig.mode === 'dark' ? 'Interfaz con contrastes optimizados para entornos de baja luz.' : 'Iluminación neutra para jornadas diurnas.' }}</p>
                     <div class="preview-line"></div>
                     <span class="preview-hint">Los cambios se aplican al instante</span>
-                  </div>
-                </div>
-              </div>
-            </article>
-
-            <article class="card">
-              <div class="card-header decorated">
-                <span class="chip chip-secondary">Alertas</span>
-                <div>
-                  <h3>Notificaciones y avisos</h3>
-                  <p class="support-text">Controla canales y silencios operativos.</p>
-                </div>
-              </div>
-
-              <div class="card-body">
-                <div class="setting-group">
-                  <label class="label">Canal preferido</label>
-                  <div class="radio-group">
-                    <label class="radio-option">
-                      <input
-                        type="radio"
-                        name="channel"
-                        value="push"
-                        [checked]="notificationChannel === 'push'"
-                        (change)="handleChannelChange('push')">
-                      <span>Push</span>
-                    </label>
-                    <label class="radio-option">
-                      <input
-                        type="radio"
-                        name="channel"
-                        value="email"
-                        [checked]="notificationChannel === 'email'"
-                        (change)="handleChannelChange('email')">
-                      <span>Email</span>
-                    </label>
-                    <label class="radio-option">
-                      <input
-                        type="radio"
-                        name="channel"
-                        value="both"
-                        [checked]="notificationChannel === 'both'"
-                        (change)="handleChannelChange('both')">
-                      <span>Ambos</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="switch-grid">
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.emailNotifications" (change)="updateNotifications()">
-                    <span>Emails operativos</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.pushNotifications" (change)="updateNotifications()">
-                    <span>Push del navegador</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.routeAlerts" (change)="updateNotifications()">
-                    <span>Alertas de ruta</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.weatherAlerts" (change)="updateNotifications()">
-                    <span>Alertas meteorologicas</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.systemUpdates" (change)="updateNotifications()">
-                    <span>Actualizaciones del sistema</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.marketingEmails" (change)="updateNotifications()">
-                    <span>Boletines comerciales</span>
-                  </label>
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.alertSound" (change)="updateNotifications()">
-                    <span>Sonidos de alerta</span>
-                  </label>
-                </div>
-
-                <div class="quiet-hours">
-                  <label class="checkbox-option">
-                    <input type="checkbox" [(ngModel)]="notifications.quietHours.enabled" (change)="updateNotifications()">
-                    <span>Silenciar por horario</span>
-                  </label>
-                  <div class="quiet-hours-range" *ngIf="notifications.quietHours.enabled">
-                    <label class="label">
-                      Desde
-                      <input type="time" [(ngModel)]="notifications.quietHours.start" (change)="updateNotifications()">
-                    </label>
-                    <label class="label">
-                      Hasta
-                      <input type="time" [(ngModel)]="notifications.quietHours.end" (change)="updateNotifications()">
-                    </label>
                   </div>
                 </div>
               </div>
@@ -193,21 +95,20 @@ type NotificationChannel = NotificationPreferences["channel"]
 
         <section class="tab-content" *ngIf="activeTab === 'operations'">
           <article class="card operations-card">
-            <div class="card-header">
+            <div class="card-header decorated">
+              <span class="chip chip-secondary">Puertos</span>
               <div>
-                <p class="eyebrow">Operaciones</p>
-                <h3>Administracion de puertos</h3>
-                <p class="description">
-                  Deshabilita o reactiva puertos para los usuarios cuando existan cierres o interrupciones.
+                <h3>Administración de puertos</h3>
+                <p class="support-text">
+                  Gestiona cierres, habilitaciones y bloqueos temporales que afectan las rutas disponibles en la plataforma.
                 </p>
               </div>
             </div>
-
             <div class="card-body operations-body">
-              <ul>
-                <li>Visualiza el estado global de puertos habilitados.</li>
-                <li>Bloquea temporalmente destinos para rutas nuevas.</li>
-                <li>Coordina con operadores regionales los cambios en tiempo real.</li>
+              <ul class="operations-list">
+                <li>Supervisa el estado global de los puertos habilitados por región.</li>
+                <li>Desactiva temporalmente destinos no operativos o con incidencias.</li>
+                <li>Coordina reaperturas en tiempo real junto con los operadores regionales.</li>
               </ul>
               <button class="btn-primary" type="button" (click)="openPortAdministration()">
                 Abrir administrador de puertos
@@ -232,25 +133,26 @@ type NotificationChannel = NotificationPreferences["channel"]
       .modal-container {
         width: min(940px, 95vw);
         max-height: 90vh;
-        background: #fff;
-        border-radius: 1.25rem;
-        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.25);
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1.5rem;
+        box-shadow: 0 40px 70px rgba(15, 23, 42, 0.3);
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        backdrop-filter: blur(12px);
       }
 
       .modal-header {
-        padding: 1.5rem 2rem 1rem;
+        padding: 1.75rem 2.25rem 1.25rem;
         display: flex;
         justify-content: space-between;
         gap: 1.5rem;
-        border-bottom: 1px solid #e2e8f0;
       }
 
       .modal-header h2 {
         margin: 0;
-        font-size: 1.75rem;
+        font-size: 1.85rem;
         color: #0f172a;
       }
 
@@ -278,28 +180,30 @@ type NotificationChannel = NotificationPreferences["channel"]
 
       .tabs {
         display: flex;
-        gap: 0.5rem;
-        padding: 0 2rem;
-        border-bottom: 1px solid #e2e8f0;
+        gap: 0.75rem;
+        padding: 0 2rem 1.25rem;
       }
 
       .tab-btn {
         border: none;
-        background: transparent;
-        color: #64748b;
+        background: rgba(248, 250, 252, 0.85);
+        color: #475569;
         font-weight: 500;
-        padding: 0.85rem 1rem;
+        padding: 0.85rem 1.25rem;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        border-bottom: 2px solid transparent;
+        border-radius: 999px;
         cursor: pointer;
-        transition: color 0.2s, border-color 0.2s;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        transition: color 0.2s, border-color 0.2s, background 0.2s;
       }
 
       .tab-btn.active {
-        color: #0a6cbc;
-        border-bottom-color: #0a6cbc;
+        color: #fff;
+        border-color: #0a6cbc;
+        background: linear-gradient(135deg, #0a6cbc, #38bdf8);
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
       }
 
       .tab-content {
@@ -377,13 +281,26 @@ type NotificationChannel = NotificationPreferences["channel"]
         gap: 0.75rem;
       }
 
-      .radio-option,
-      .checkbox-option {
+      .radio-option {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
         font-size: 0.95rem;
         color: #475569;
+        padding: 0.45rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(248, 250, 252, 0.9);
+        transition: border-color 0.2s, background 0.2s, color 0.2s;
+      }
+
+      .radio-option input[type="radio"] {
+        accent-color: #0a6cbc;
+      }
+
+      .radio-option:hover {
+        border-color: #0a6cbc;
+        color: #0a6cbc;
       }
 
       .switch-grid {
@@ -398,17 +315,17 @@ type NotificationChannel = NotificationPreferences["channel"]
         border-radius: 1rem;
         overflow: hidden;
         padding: 1.25rem;
-        background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.35), rgba(15, 23, 42, 0.95));
-        color: #e2e8f0;
-        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+        background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.15), rgba(248, 250, 252, 0.95));
+        color: #0f172a;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
       }
 
       .theme-preview::after {
         content: "";
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, rgba(15, 118, 110, 0.4), transparent 60%);
-        opacity: 0.7;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), transparent 60%);
+        opacity: 0.5;
         pointer-events: none;
       }
 
@@ -418,27 +335,31 @@ type NotificationChannel = NotificationPreferences["channel"]
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
       }
 
       .preview-panel h4 {
         margin: 0;
         font-size: 1.15rem;
         font-weight: 600;
-        color: #f8fafc;
+        color: #0f172a;
       }
 
       .preview-panel p {
         margin: 0;
         font-size: 0.9rem;
-        color: rgba(248, 250, 252, 0.85);
+        color: #475569;
       }
 
       .preview-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        background: rgba(15, 118, 110, 0.2);
-        color: #99f6e4;
+        background: rgba(15, 118, 232, 0.12);
+        color: #0a6cbc;
         padding: 0.25rem 0.7rem;
         border-radius: 999px;
         font-size: 0.7rem;
@@ -447,14 +368,15 @@ type NotificationChannel = NotificationPreferences["channel"]
       }
 
       .preview-line {
-        height: 1px;
+        height: 3px;
         width: 100%;
-        background: rgba(226, 232, 240, 0.3);
+        background: linear-gradient(90deg, #0a6cbc, #38bdf8);
+        border-radius: 999px;
       }
 
       .preview-hint {
         font-size: 0.8rem;
-        color: rgba(226, 232, 240, 0.8);
+        color: #64748b;
       }
 
       .quiet-hours {
@@ -480,7 +402,7 @@ type NotificationChannel = NotificationPreferences["channel"]
         gap: 1rem;
       }
 
-      .operations-body ul {
+      .operations-list {
         padding-left: 1.25rem;
         margin: 0;
         color: #0f172a;
@@ -503,14 +425,6 @@ type NotificationChannel = NotificationPreferences["channel"]
         background: #084f8d;
       }
 
-      .eyebrow {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #64748b;
-        margin: 0 0 0.25rem;
-      }
-
       @media (max-width: 640px) {
         .modal-container {
           border-radius: 0;
@@ -529,8 +443,14 @@ type NotificationChannel = NotificationPreferences["channel"]
       }
 
       :host-context(.dark-mode) .modal-container {
-        background: #0f172a;
+        background: rgba(5, 10, 25, 0.95);
         color: #e2e8f0;
+        border-color: rgba(56, 189, 248, 0.15);
+        box-shadow: 0 45px 90px rgba(1, 4, 18, 0.9);
+      }
+
+      :host-context(.dark-mode) .modal-header h2 {
+        color: #f8fafc;
       }
 
       :host-context(.dark-mode) .card {
@@ -545,8 +465,58 @@ type NotificationChannel = NotificationPreferences["channel"]
       }
 
       :host-context(.dark-mode) .description,
-      :host-context(.dark-mode) .radio-option,
-      :host-context(.dark-mode) .checkbox-option {
+      :host-context(.dark-mode) .preview-panel p,
+      :host-context(.dark-mode) .preview-hint,
+      :host-context(.dark-mode) .label {
+        color: #cbd5f5;
+      }
+
+      :host-context(.dark-mode) .tab-btn {
+        background: rgba(8, 18, 35, 0.8);
+        color: #94a3b8;
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+
+      :host-context(.dark-mode) .tab-btn.active {
+        background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+        color: #f8fafc;
+        border-color: rgba(59, 130, 246, 0.45);
+      }
+
+      :host-context(.dark-mode) .radio-option {
+        background: rgba(8, 18, 35, 0.85);
+        border-color: rgba(59, 130, 246, 0.35);
+      }
+
+      :host-context(.dark-mode) .radio-option:hover {
+        color: #38bdf8;
+        border-color: #38bdf8;
+      }
+
+      :host-context(.dark-mode) .theme-preview {
+        background: radial-gradient(circle at top right, rgba(30, 64, 175, 0.35), rgba(2, 6, 23, 0.95));
+        color: #f1f5f9;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
+      }
+
+      :host-context(.dark-mode) .theme-preview::after {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), transparent 60%);
+      }
+
+      :host-context(.dark-mode) .preview-panel {
+        background: rgba(6, 12, 30, 0.9);
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+
+      :host-context(.dark-mode) .preview-panel h4 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .preview-line {
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+      }
+
+      :host-context(.dark-mode) .operations-list {
         color: #cbd5f5;
       }
     `,

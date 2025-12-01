@@ -167,9 +167,22 @@ type HeaderNotification = NotificationResource
                               <ng-container *ngIf="notification.performedBy">Por {{ notification.performedBy }}</ng-container>
                             </p>
                           </div>
-                          <span class="notification-action-pill" *ngIf="notification.action">
-                            {{ notification.action === "DISABLED" ? "Deshabilitado" : notification.action === "ENABLED" ? "Habilitado" : notification.action }}
-                          </span>
+                          <div class="notification-header-actions">
+                            <span class="notification-action-pill" *ngIf="notification.action">
+                              {{ notification.action === "DISABLED" ? "Deshabilitado" : notification.action === "ENABLED" ? "Habilitado" : notification.action }}
+                            </span>
+                            <button
+                              class="notification-dismiss-btn"
+                              type="button"
+                              aria-label="Eliminar notificación"
+                              (click)="removeNotification(notification, $event)"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                         <p>{{ notification.message }}</p>
                         <div class="notification-footer">
@@ -200,14 +213,14 @@ type HeaderNotification = NotificationResource
                   </div>
                 </div>
 
-                <div class="notifications-footer" *ngIf="notifications.length > 0">
+                <div class="notifications-footer" *ngIf="notifications.length > 0 && notificationsHasNext">
                   <button
                     class="load-more-btn"
                     type="button"
                     (click)="loadNotifications()"
-                    [disabled]="notificationsLoading || !notificationsHasNext"
+                    [disabled]="notificationsLoading"
                   >
-                    {{ notificationsHasNext ? (notificationsLoading ? "Cargando..." : "Ver mas") : "Sin mas registros" }}
+                    {{ notificationsLoading ? "Cargando..." : "Ver más" }}
                   </button>
                 </div>
               </div>
@@ -705,6 +718,30 @@ type HeaderNotification = NotificationResource
         gap: 0.75rem;
       }
 
+      .notification-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .notification-dismiss-btn {
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        padding: 0.15rem;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: color 150ms ease, background-color 150ms ease;
+      }
+
+      .notification-dismiss-btn:hover {
+        color: #dc2626;
+        background-color: rgba(220, 38, 38, 0.12);
+      }
+
       .notification-content h4 {
         margin: 0 0 0.25rem 0;
         font-size: 0.875rem;
@@ -947,6 +984,15 @@ type HeaderNotification = NotificationResource
 
       :host-context(.dark-mode) .mark-read-btn {
         color: #93c5fd;
+      }
+
+      :host-context(.dark-mode) .notification-dismiss-btn {
+        color: #c7d2fe;
+      }
+
+      :host-context(.dark-mode) .notification-dismiss-btn:hover {
+        color: #fecaca;
+        background-color: rgba(248, 113, 113, 0.2);
       }
 
       :host-context(.dark-mode) .notifications-footer {
@@ -1281,6 +1327,17 @@ export class HeaderComponent {
       return
     }
     this.markNotificationAsRead(notification)
+  }
+
+  removeNotification(notification: HeaderNotification, event?: Event): void {
+    event?.stopPropagation()
+
+    if (!notification) {
+      return
+    }
+
+    this.notifications = this.notifications.filter((item) => item.id !== notification.id)
+    this.updateUnreadCount()
   }
 
   markNotificationAsRead(notification: HeaderNotification): void {

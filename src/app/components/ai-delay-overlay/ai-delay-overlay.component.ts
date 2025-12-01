@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, ElementRef, Renderer2, ViewChild } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, ElementRef, Renderer2, ViewChild, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { HttpClient, HttpClientModule } from "@angular/common/http";
 import { environment } from "../../../environments/environment";
@@ -46,6 +46,8 @@ type HazardAssessmentResponse = {
   plannedHours: number;
   segments: HazardSegment[];
 };
+
+type RiskLevel = "low" | "medium" | "high";
 
 @Component({
   selector: "app-ai-delay-overlay",
@@ -277,6 +279,111 @@ type HazardAssessmentResponse = {
     .badge.medium { background:#fef9c3; color:#713f12; border-color:#fde68a; }
     .badge.high {   background:#fee2e2; color:#7f1d1d; border-color:#fecaca; }
     .rationale { width:100%; font-size:12px; color:#475569; margin-left:2px; }
+
+    :host-context(.dark-mode) .teemo-delay-overlay {
+      background: rgba(4, 7, 20, 0.94);
+      color: #e2e8f0;
+      border-color: rgba(56, 189, 248, 0.25);
+      box-shadow: 0 24px 50px rgba(1, 4, 18, 0.8);
+    }
+    :host-context(.dark-mode) .hdr {
+      border-bottom-color: rgba(148, 163, 184, 0.25);
+    }
+    :host-context(.dark-mode) .title {
+      color: #93c5fd;
+    }
+    :host-context(.dark-mode) .dot {
+      background:#38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+    :host-context(.dark-mode) .pill {
+      background: rgba(8, 18, 35, 0.85);
+      color: #cbd5f5;
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+    :host-context(.dark-mode) .tabs {
+      border-top-color: rgba(148, 163, 184, 0.25);
+    }
+    :host-context(.dark-mode) .tab {
+      background: rgba(8, 18, 35, 0.9);
+      color: #e2e8f0;
+      border-color: rgba(148, 163, 184, 0.25);
+    }
+    :host-context(.dark-mode) .tab.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #0ea5e9;
+    }
+    :host-context(.dark-mode) .kv {
+      color: #e2e8f0;
+    }
+    :host-context(.dark-mode) .muted {
+      color: #94a3b8;
+    }
+    :host-context(.dark-mode) .haz-meta {
+      color: #cbd5f5;
+    }
+    :host-context(.dark-mode) .segment {
+      background: rgba(8, 17, 31, 0.9);
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+    :host-context(.dark-mode) .segment-hdr {
+      color: #f8fafc;
+    }
+    :host-context(.dark-mode) .segment-sub,
+    :host-context(.dark-mode) .rationale {
+      color: #94a3b8;
+    }
+    :host-context(.dark-mode) .ice-advisory {
+      background: rgba(127, 29, 29, 0.35);
+      border-color: rgba(248, 113, 113, 0.5);
+      color: #fecaca;
+    }
+    :host-context(.dark-mode) .haz-row {
+      border-top-color: rgba(148, 163, 184, 0.25);
+    }
+    :host-context(.dark-mode) .badge {
+      background: rgba(148, 163, 184, 0.2);
+      color: #f8fafc;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+    :host-context(.dark-mode) .badge.low {
+      background: rgba(74, 222, 128, 0.2);
+      color: #bbf7d0;
+      border-color: rgba(74, 222, 128, 0.35);
+    }
+    :host-context(.dark-mode) .badge.medium {
+      background: rgba(249, 224, 127, 0.2);
+      color: #fde68a;
+      border-color: rgba(250, 204, 21, 0.35);
+    }
+    :host-context(.dark-mode) .badge.high {
+      background: rgba(248, 113, 113, 0.25);
+      color: #fecaca;
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+    :host-context(.dark-mode) .map-btn {
+      background: rgba(8, 18, 35, 0.85);
+      color: #f8fafc;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+    :host-context(.dark-mode) .map-btn:hover {
+      background: rgba(59, 130, 246, 0.18);
+      color: #f8fafc;
+    }
+    :host-context(.dark-mode) .map-btn.primary {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+    :host-context(.dark-mode) .map-btn.primary:hover {
+      background: #1e40af;
+      border-color: #1e40af;
+    }
+    :host-context(.dark-mode) .map-btn.ghost {
+      background: rgba(8, 18, 35, 0.85);
+      color: #e2e8f0;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
   `]
 })
 export class AiDelayOverlayComponent implements OnChanges {
@@ -289,6 +396,7 @@ export class AiDelayOverlayComponent implements OnChanges {
   @Input() destLat?: number | null;
   @Input() destLon?: number | null;
   @Input() cruiseSpeedKnots: number = 18;
+  @Output() riskLevelChange = new EventEmitter<RiskLevel>();
 
   @ViewChild("overlay") overlayRef!: ElementRef;
 
@@ -441,12 +549,18 @@ export class AiDelayOverlayComponent implements OnChanges {
     if (distanceKm != null) payload.distanceKm = distanceKm;
 
     this.http.post<DelayPredictionResponse>(this.delayUrl, payload).subscribe({
-      next: (resp) => { this.prediction = resp; this.loading = false; },
+      next: (resp) => {
+        this.prediction = resp;
+        this.loading = false;
+        this.emitRiskLevel(this.prediction?.delayProbability);
+      },
       error: (err) => {
         console.error("[AI] predict-delay error", err);
         this.error = "No se pudo obtener la predicción.";
+        this.prediction = null;
         this.loading = false;
-      }
+        this.emitRiskLevel(undefined);
+      },
     });
   }
 
@@ -491,19 +605,30 @@ export class AiDelayOverlayComponent implements OnChanges {
 
   toggle() { this.showOverlay = !this.showOverlay; }
 
+  private determineRiskLevel(probability?: number): RiskLevel {
+    const value = probability ?? 0;
+    if (value >= 0.5) return "high";
+    if (value >= 0.36) return "medium";
+    return "low";
+  }
+
+  private emitRiskLevel(probability?: number): void {
+    this.riskLevelChange.emit(this.determineRiskLevel(probability));
+  }
+
   pillClass() {
     if (this.loading || !this.prediction) return "good";
-    const p = this.prediction.delayProbability ?? 0;
-    if (p >= 0.5) return "bad";
-    if (p >= 0.2) return "warn";
+    const level = this.determineRiskLevel(this.prediction.delayProbability);
+    if (level === "high") return "bad";
+    if (level === "medium") return "warn";
     return "good";
   }
 
   riskLabel() {
     if (!this.prediction) return "";
-    const p = this.prediction.delayProbability ?? 0;
-    if (p >= 0.5) return "Riesgo alto";
-    if (p >= 0.2) return "Riesgo medio";
+    const level = this.determineRiskLevel(this.prediction.delayProbability);
+    if (level === "high") return "Riesgo alto";
+    if (level === "medium") return "Riesgo medio";
     return "Bajo riesgo";
   }
 

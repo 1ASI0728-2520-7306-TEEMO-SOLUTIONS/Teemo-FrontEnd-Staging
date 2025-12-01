@@ -5,7 +5,9 @@ import { PortService, Port } from "../../../services/port.service"
 import { RouteService, RouteCalculationResource } from "../../../services/route.service"
 import { RouteAnimationComponent } from "../route-animation/route-animation.component"
 import { IncotermCalculatorComponent } from "../incoterm-calculator/incoterm-calculator.component"
-import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.component';
+import { AiDelayOverlayComponent } from "../../ai-delay-overlay/ai-delay-overlay.component"
+
+type RiskLevel = "low" | "medium" | "high"
 
 @Component({
   selector: "app-port-selector",
@@ -285,6 +287,7 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
           [originPortId]="selectedOriginPort?.id || null"
           [destinationPortId]="selectedDestinationPort?.id || null"
           [routeData]="routeData"
+          [riskLevel]="routeRiskLevel"
         ></app-route-animation>
         <app-ai-delay-overlay
           [origin]="selectedOriginPort?.name || null"
@@ -294,7 +297,8 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
           [originLon]="selectedOriginPort?.coordinates?.longitude || null"
           [destLat]="selectedDestinationPort?.coordinates?.latitude || null"
           [destLon]="selectedDestinationPort?.coordinates?.longitude || null"
-          [cruiseSpeedKnots]="18">
+          [cruiseSpeedKnots]="18"
+          (riskLevelChange)="routeRiskLevel = $event">
         </app-ai-delay-overlay>
       </div>
 
@@ -720,6 +724,7 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
       .summary-item {
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
+        color: #0f172a;
 
         &:last-child {
           margin-bottom: 0;
@@ -955,6 +960,22 @@ import {AiDelayOverlayComponent} from '../../ai-delay-overlay/ai-delay-overlay.c
         border-color: rgba(59, 130, 246, 0.25);
       }
 
+      :host-context(.dark-mode) .route-visualization-section {
+        border-top-color: rgba(59, 130, 246, 0.2);
+      }
+
+      :host-context(.dark-mode) .route-visualization-section h3 {
+        color: #f8fafc;
+      }
+
+      :host-context(.dark-mode) .route-summary .summary-item {
+        color: #e2e8f0;
+      }
+
+      :host-context(.dark-mode) .route-summary .summary-item strong {
+        color: #f0f9ff;
+      }
+
       :host-context(.dark-mode) .port-list-header {
         background-color: rgba(2, 8, 23, 0.85);
         border-color: rgba(59, 130, 246, 0.2);
@@ -1081,6 +1102,7 @@ export class PortSelectorComponent implements OnInit {
   // Visualización de ruta
   showRouteVisualization = false
   routeData: RouteCalculationResource | null = null
+  routeRiskLevel: RiskLevel = "low"
 
   // Puertos intermedios
   selectedIntermediatePorts: Port[] = []

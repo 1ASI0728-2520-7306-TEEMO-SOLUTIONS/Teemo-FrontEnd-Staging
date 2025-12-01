@@ -552,14 +552,14 @@ export class AiDelayOverlayComponent implements OnChanges {
       next: (resp) => {
         this.prediction = resp;
         this.loading = false;
-        this.emitRiskLevel(this.prediction?.delayProbability);
+        this.emitRiskLevel(this.prediction?.delayProbability, this.prediction?.delayHours);
       },
       error: (err) => {
         console.error("[AI] predict-delay error", err);
         this.error = "No se pudo obtener la predicción.";
         this.prediction = null;
         this.loading = false;
-        this.emitRiskLevel(undefined);
+        this.emitRiskLevel(undefined, undefined);
       },
     });
   }
@@ -605,20 +605,21 @@ export class AiDelayOverlayComponent implements OnChanges {
 
   toggle() { this.showOverlay = !this.showOverlay; }
 
-  private determineRiskLevel(probability?: number): RiskLevel {
+  private determineRiskLevel(probability?: number, delayHours?: number): RiskLevel {
     const value = probability ?? 0;
-    if (value >= 0.5) return "high";
-    if (value >= 0.36) return "medium";
+    const hours = delayHours ?? 0;
+    if (value >= 0.6 || hours >= 36) return "high";
+    if (value >= 0.4 || hours >= 12) return "medium";
     return "low";
   }
 
-  private emitRiskLevel(probability?: number): void {
-    this.riskLevelChange.emit(this.determineRiskLevel(probability));
+  private emitRiskLevel(probability?: number, delayHours?: number): void {
+    this.riskLevelChange.emit(this.determineRiskLevel(probability, delayHours));
   }
 
   pillClass() {
     if (this.loading || !this.prediction) return "good";
-    const level = this.determineRiskLevel(this.prediction.delayProbability);
+    const level = this.determineRiskLevel(this.prediction.delayProbability, this.prediction.delayHours);
     if (level === "high") return "bad";
     if (level === "medium") return "warn";
     return "good";
@@ -626,7 +627,7 @@ export class AiDelayOverlayComponent implements OnChanges {
 
   riskLabel() {
     if (!this.prediction) return "";
-    const level = this.determineRiskLevel(this.prediction.delayProbability);
+    const level = this.determineRiskLevel(this.prediction.delayProbability, this.prediction.delayHours);
     if (level === "high") return "Riesgo alto";
     if (level === "medium") return "Riesgo medio";
     return "Bajo riesgo";

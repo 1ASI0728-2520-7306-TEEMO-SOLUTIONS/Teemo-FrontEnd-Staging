@@ -3,6 +3,13 @@ import { CommonModule } from "@angular/common"
 import { NavigationEnd, Router, RouterModule } from "@angular/router"
 import { filter } from "rxjs"
 
+interface SidebarUser {
+  id?: string
+  name: string
+  role: string
+  username?: string
+}
+
 @Component({
   selector: "app-sidebar",
   standalone: true,
@@ -83,18 +90,30 @@ import { filter } from "rxjs"
       </div>
 
       <div class="sidebar-footer">
-        <div class="user-info" *ngIf="!collapsed">
-          <div class="user-avatar">
-            <span>{{ getUserInitials() }}</span>
-          </div>
+        <button
+          class="user-trigger"
+          type="button"
+          *ngIf="!collapsed"
+          (click)="openUserProfile()"
+          aria-label="Abrir perfil del usuario"
+        >
+          <span class="user-avatar" aria-hidden="true">
+            <span>{{ getUserInitial() }}</span>
+          </span>
           <div class="user-details">
             <span class="user-name">{{ currentUser.name }}</span>
             <span class="user-role">{{ currentUser.role }}</span>
           </div>
-        </div>
-        <div class="user-avatar" *ngIf="collapsed">
-          <span>{{ getUserInitials() }}</span>
-        </div>
+        </button>
+        <button
+          class="user-avatar only-icon"
+          type="button"
+          *ngIf="collapsed"
+          (click)="openUserProfile()"
+          aria-label="Abrir perfil del usuario"
+        >
+          <span>{{ getUserInitial() }}</span>
+        </button>
       </div>
     </aside>
   `,
@@ -213,11 +232,21 @@ import { filter } from "rxjs"
         align-items: center;
       }
 
-      .user-info {
+      .user-trigger {
         display: flex;
         align-items: center;
         gap: 1rem;
         width: 100%;
+        border: none;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .user-trigger:focus-visible {
+        outline: 2px solid rgba(14, 165, 233, 0.75);
+        border-radius: 0.75rem;
       }
 
       .user-avatar {
@@ -226,11 +255,29 @@ import { filter } from "rxjs"
         border-radius: 9999px;
         background-color: #0a6cbc;
         color: white;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
         flex-shrink: 0;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 150ms ease, opacity 150ms ease;
+      }
+
+      .user-avatar.only-icon {
+        margin-left: auto;
+      }
+
+      .user-avatar:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+      }
+
+      .user-avatar:focus-visible {
+        outline: 2px solid rgba(14, 165, 233, 0.8);
+        outline-offset: 2px;
       }
 
       .user-details {
@@ -306,7 +353,7 @@ import { filter } from "rxjs"
   ],
 })
 export class SidebarComponent implements OnInit {
-  @Input() currentUser: any = {
+  @Input() currentUser: SidebarUser = {
     name: "Usuario Demo",
     role: "Capitán",
   }
@@ -323,7 +370,7 @@ export class SidebarComponent implements OnInit {
     // Detectar cambios de ruta
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event: NavigationEnd) => {
       // Rutas donde el sidebar debe estar visible
-      const visibleRoutes = ["/shipment-reports", "/dashboard"]
+      const visibleRoutes = ["/shipment-reports", "/dashboard", "/nearby-ports", "/user-profile"]
       this.isVisible = visibleRoutes.includes(event.urlAfterRedirects)
     })
   }
@@ -332,19 +379,33 @@ export class SidebarComponent implements OnInit {
     // Limpiar localStorage y establecer estado inicial
     localStorage.removeItem("sidebar_collapsed")
     this.collapsed = true
+    this.updateRootSidebarClass(true)
   }
 
   toggleCollapse(): void {
     this.collapsed = !this.collapsed
     localStorage.setItem("sidebar_collapsed", this.collapsed.toString())
+    this.updateRootSidebarClass(this.collapsed)
   }
 
-  getUserInitials(): string {
-    if (!this.currentUser || !this.currentUser.name) return "U"
+  getUserInitial(): string {
+    const raw = this.currentUser?.name || this.currentUser?.username
+    if (!raw) {
+      return "U"
+    }
 
-    const nameParts = this.currentUser.name.split(" ")
-    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase()
+    const initial = raw.trim().charAt(0).toUpperCase()
+    return initial || "U"
+  }
 
-    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase()
+  openUserProfile(): void {
+    this.router.navigate(["/user-profile"])
+  }
+
+  private updateRootSidebarClass(collapsed: boolean): void {
+    if (typeof document === "undefined") {
+      return
+    }
+    document.documentElement.classList.toggle("sidebar-collapsed", collapsed)
   }
 }

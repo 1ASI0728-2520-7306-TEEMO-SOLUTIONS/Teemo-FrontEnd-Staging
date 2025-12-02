@@ -8,6 +8,7 @@ import { HeaderComponent } from "../shared/header/header.component"
 import { AnimationService } from "../../services/animation.service"
 import { ThemeService } from "../../services/theme.service"
 import { RouteService, type PopularRouteResource } from "../../services/route.service"
+import { AuthService, type User } from "../../services/auth.service"
 import { Subscription } from "rxjs"
 
 declare var VANTA: any
@@ -751,6 +752,8 @@ interface PopularRoute {
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUser = {
+    id: undefined as string | undefined,
+    username: "usuario.demo",
     name: "Usuario Demo",
     role: "Capitán",
   }
@@ -842,11 +845,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private animationService: AnimationService,
     private themeService: ThemeService,
     private routeService: RouteService,
+    private authService: AuthService,
   ) {
     this.popularRoutes = [...this.fallbackPopularRoutes]
   }
 
   ngOnInit(): void {
+    this.resolveCurrentUser()
+
     this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
       this.isDarkMode = isDark
       if (this.vantaEffect) {
@@ -1078,6 +1084,37 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       return "medium"
     }
     return "low"
+  }
+
+  private resolveCurrentUser(): void {
+    const user = this.authService.currentUserValue
+    if (!user) {
+      return
+    }
+
+    this.currentUser = {
+      id: user.id,
+      username: user.username,
+      name: this.extractUserName(user),
+      role: this.formatUserRole(user),
+    }
+  }
+
+  private extractUserName(user: User): string {
+    const candidate = user.name?.trim() || user.username
+    if (candidate && candidate.length > 0) {
+      return candidate
+    }
+    return "Usuario"
+  }
+
+  private formatUserRole(user: User): string {
+    const rawRole = user.role || user.roles?.[0]
+    if (!rawRole) {
+      return this.currentUser.role
+    }
+    const normalized = rawRole.replace(/^ROLE_/, "").toLowerCase()
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1)
   }
 
   togglePortSelector(): void {

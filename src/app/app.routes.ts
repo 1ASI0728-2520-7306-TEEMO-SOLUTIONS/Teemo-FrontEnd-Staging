@@ -41,5 +41,11 @@ export const routes: Routes = [
       import("./components/captain/nearby-ports/nearby-ports.component").then((m) => m.NearbyPortsComponent),
     canActivate: [AuthGuard],
   },
+  {
+    path: "user-profile",
+    loadComponent: () =>
+      import("./components/profile/user-profile.component").then((m) => m.UserProfileComponent),
+    canActivate: [AuthGuard],
+  },
   { path: "**", redirectTo: "dashboard" },
 ]

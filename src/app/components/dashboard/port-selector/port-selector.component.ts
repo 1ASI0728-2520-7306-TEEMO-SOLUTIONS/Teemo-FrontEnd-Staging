@@ -463,7 +463,7 @@ type RiskLevel = "low" | "medium" | "high"
 
       .search-input {
         width: 100%;
-        padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+        padding: 0.5rem 2.5rem 0.5rem 2.25rem;
         border: 1px solid #cbd5e1;
         border-radius: 0.375rem;
         font-size: 0.875rem;
@@ -478,7 +478,8 @@ type RiskLevel = "low" | "medium" | "high"
 
       .search-icon {
         position: absolute;
-        right: 0.75rem;
+        left: 0.75rem;
+        right: auto;
         top: 50%;
         transform: translateY(-50%);
         color: #64748b;

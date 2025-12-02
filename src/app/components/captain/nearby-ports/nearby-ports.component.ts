@@ -8,6 +8,7 @@ import { NearbyPortService, PortOperationalStatus, PortOverviewItem } from "../.
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 import { ThemeService } from "../../../services/theme.service"
+import { AuthService, type User } from "../../../services/auth.service"
 
 declare const VANTA: any
 
@@ -699,6 +700,8 @@ type PortFilter = "all" | PortOperationalStatus
 })
 export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUser = {
+    id: undefined as string | undefined,
+    username: "capitan.demo",
     name: "Capitán Demo",
     role: "Operaciones",
   }
@@ -734,9 +737,15 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
   private vantaEffect: any = null
   private isDarkMode = false
 
-  constructor(private nearbyPortService: NearbyPortService, private themeService: ThemeService) {}
+  constructor(
+    private nearbyPortService: NearbyPortService,
+    private themeService: ThemeService,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    this.resolveCurrentUser()
+
     this.subscriptions.add(
       this.themeService.isDarkMode$.subscribe((isDark) => {
         this.isDarkMode = isDark
@@ -823,6 +832,37 @@ export class NearbyPortsComponent implements OnInit, AfterViewInit, OnDestroy {
       return "Todos"
     }
     return this.getStatusLabel(filter)
+  }
+
+  private resolveCurrentUser(): void {
+    const user = this.authService.currentUserValue
+    if (!user) {
+      return
+    }
+
+    this.currentUser = {
+      id: user.id,
+      username: user.username,
+      name: this.extractUserName(user),
+      role: this.formatUserRole(user),
+    }
+  }
+
+  private extractUserName(user: User): string {
+    const candidate = user.name?.trim() || user.username
+    if (candidate && candidate.length > 0) {
+      return candidate
+    }
+    return this.currentUser.name
+  }
+
+  private formatUserRole(user: User): string {
+    const rawRole = user.role || user.roles?.[0]
+    if (!rawRole) {
+      return this.currentUser.role
+    }
+    const normalized = rawRole.replace(/^ROLE_/, "").toLowerCase()
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1)
   }
 
   private loadPorts(): void {

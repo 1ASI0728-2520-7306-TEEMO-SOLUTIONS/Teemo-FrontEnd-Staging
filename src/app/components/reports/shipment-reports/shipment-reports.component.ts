@@ -6,6 +6,7 @@ import { SidebarComponent } from "../../shared/sidebar/sidebar.component"
 import { HeaderComponent } from "../../shared/header/header.component"
 import { ReportService, ShipmentReport } from "../../../services/report.service"
 import { ThemeService } from "../../../services/theme.service"
+import { AuthService, type User } from "../../../services/auth.service"
 import { Subscription } from "rxjs"
 
 declare const VANTA: any
@@ -863,13 +864,21 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
   private downloadMessageTimeout?: ReturnType<typeof setTimeout>
 
   currentUser = {
+    id: undefined as string | undefined,
+    username: "usuario.demo",
     name: "Usuario Demo",
     role: "Capitán",
   }
 
-  constructor(private reportService: ReportService, private themeService: ThemeService) {}
+  constructor(
+    private reportService: ReportService,
+    private themeService: ThemeService,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    this.resolveCurrentUser()
+
     this.themeSub = this.themeService.isDarkMode$.subscribe((isDark) => {
       this.isDarkMode = isDark
       if (this.vantaEffect) {
@@ -916,6 +925,37 @@ export class ShipmentReportsComponent implements OnInit, AfterViewInit, OnDestro
     this.filteredReports = this.reports.filter(
       (report) => report.shipmentId.toLowerCase().includes(term) || report.routeName.toLowerCase().includes(term),
     )
+  }
+
+  private resolveCurrentUser(): void {
+    const user = this.authService.currentUserValue
+    if (!user) {
+      return
+    }
+
+    this.currentUser = {
+      id: user.id,
+      username: user.username,
+      name: this.extractUserName(user),
+      role: this.formatUserRole(user),
+    }
+  }
+
+  private extractUserName(user: User): string {
+    const candidate = user.name?.trim() || user.username
+    if (candidate && candidate.length > 0) {
+      return candidate
+    }
+    return this.currentUser.name
+  }
+
+  private formatUserRole(user: User): string {
+    const rawRole = user.role || user.roles?.[0]
+    if (!rawRole) {
+      return this.currentUser.role
+    }
+    const normalized = rawRole.replace(/^ROLE_/, "").toLowerCase()
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1)
   }
 
   selectReport(report: ShipmentReport): void {

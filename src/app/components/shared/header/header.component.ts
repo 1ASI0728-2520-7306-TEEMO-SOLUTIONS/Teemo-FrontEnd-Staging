@@ -1120,6 +1120,9 @@ type HeaderNotification = NotificationResource
   ],
 })
 export class HeaderComponent {
+  private readonly reviewedNotificationsStorageKey = 'header_reviewed_notification_ids'
+  private readonly reviewedSurveyStorageKey = 'header_survey_notification_reviewed'
+
   @Input() pageTitle = "Teemo Solutions"
   @Input() subtitle?: string
   @Input() breadcrumbs: { label: string; link?: string }[] = []
@@ -1137,6 +1140,7 @@ export class HeaderComponent {
 
   notifications: HeaderNotification[] = []
   unreadNotifications = 0
+  newNotificationsCount = 0
   notificationsLoading = false
   notificationsError: string | null = null
   notificationsHasNext = true
@@ -1147,6 +1151,8 @@ export class HeaderComponent {
   private notificationsRequested = false
   private lastNotificationsRefresh = 0
   private readonly notificationsRefreshIntervalMs = 30000
+  private readonly reviewedNotificationIds = new Set<string>()
+  private surveyNotificationReviewed = false
   private readonly fallbackNotifications: HeaderNotification[] = [
     {
       id: "fallback-1",
@@ -1182,6 +1188,8 @@ export class HeaderComponent {
   ) {}
 
   ngOnInit(): void {
+    this.restoreReviewedNotificationsState()
+
     // Subscribe to theme changes
     this.themeService.isDarkMode$.subscribe((isDark) => {
       this.isDarkMode = isDark
@@ -1231,6 +1239,8 @@ export class HeaderComponent {
     this.showNotifications = !this.showNotifications
 
     if (this.showNotifications) {
+      this.acknowledgeNotificationsBadge()
+
       if (!this.notificationsRequested) {
         this.requestInitialNotifications()
       } else if (!this.notificationsLoading) {
@@ -1246,16 +1256,22 @@ export class HeaderComponent {
   openSurvey(): void {
     this.showSurveyModal = true
     this.showNotifications = false
+    this.surveyNotificationReviewed = true
+    this.persistSurveyNotificationReviewedState()
   }
 
   closeSurvey(): void {
     this.showSurveyModal = false
     // Hide survey notification after user interacts with it
     this.showSurveyNotification = false
+    this.surveyNotificationReviewed = true
+    this.persistSurveyNotificationReviewedState()
   }
 
   dismissSurveyNotification(): void {
     this.showSurveyNotification = false
+    this.surveyNotificationReviewed = true
+    this.persistSurveyNotificationReviewedState()
     // Store dismissal to avoid showing again for a while
     localStorage.setItem("survey_dismissed", new Date().toISOString())
   }
@@ -1306,7 +1322,7 @@ export class HeaderComponent {
           }
 
           this.notificationsLoading = false
-          this.updateUnreadCount()
+          this.updateNotificationCounters()
         },
         error: (error) => {
           this.notificationsLoading = false
@@ -1317,7 +1333,7 @@ export class HeaderComponent {
           }
 
           this.notificationsHasNext = false
-          this.updateUnreadCount()
+          this.updateNotificationCounters()
         },
       })
   }
@@ -1337,7 +1353,7 @@ export class HeaderComponent {
     }
 
     this.notifications = this.notifications.filter((item) => item.id !== notification.id)
-    this.updateUnreadCount()
+    this.updateNotificationCounters()
   }
 
   markNotificationAsRead(notification: HeaderNotification): void {
@@ -1347,18 +1363,18 @@ export class HeaderComponent {
 
     if (this.isFallbackNotification(notification)) {
       notification.read = true
-      this.updateUnreadCount()
+      this.updateNotificationCounters()
       return
     }
 
     notification.read = true
-    this.updateUnreadCount()
+    this.updateNotificationCounters()
 
     this.notificationService.markAsRead(notification.id).subscribe({
       error: (error) => {
         this.notificationsError = error?.message || "No se pudo actualizar la notificacion."
         notification.read = false
-        this.updateUnreadCount()
+        this.updateNotificationCounters()
       },
     })
   }
@@ -1374,7 +1390,7 @@ export class HeaderComponent {
           notification.read = true
         }
       })
-      this.updateUnreadCount()
+      this.updateNotificationCounters()
       return
     }
 
@@ -1384,13 +1400,13 @@ export class HeaderComponent {
         notification.read = true
       }
     })
-    this.updateUnreadCount()
+    this.updateNotificationCounters()
 
     this.markAllInProgress = true
     this.notificationService.markManyAsRead(pendingIds).subscribe({
       next: () => {
         this.markAllInProgress = false
-        this.updateUnreadCount()
+        this.updateNotificationCounters()
       },
       error: (error) => {
         this.notificationsError = error?.message || "No se pudieron marcar las notificaciones."
@@ -1400,7 +1416,7 @@ export class HeaderComponent {
           }
         })
         this.markAllInProgress = false
-        this.updateUnreadCount()
+        this.updateNotificationCounters()
       },
     })
   }
@@ -1457,8 +1473,34 @@ export class HeaderComponent {
     }
   }
 
-  private updateUnreadCount(): void {
+  private acknowledgeNotificationsBadge(): void {
+    this.notifications
+      .filter((notification) => !notification.read && !this.isFallbackNotification(notification))
+      .forEach((notification) => this.reviewedNotificationIds.add(notification.id))
+
+    if (this.showSurveyNotification) {
+      this.surveyNotificationReviewed = true
+      this.persistSurveyNotificationReviewedState()
+    }
+
+    this.persistReviewedNotificationsState()
+    this.newNotificationsCount = 0
+  }
+
+  private updateNotificationCounters(): void {
     this.unreadNotifications = this.notifications.filter((notification) => !notification.read && !this.isFallbackNotification(notification)).length
+
+    if (this.showNotifications) {
+      this.acknowledgeNotificationsBadge()
+      return
+    }
+
+    this.newNotificationsCount = this.notifications.filter(
+      (notification) =>
+        !notification.read &&
+        !this.isFallbackNotification(notification) &&
+        !this.reviewedNotificationIds.has(notification.id),
+    ).length
   }
 
   private mapNotificationResource(resource: NotificationResource): HeaderNotification {
@@ -1485,8 +1527,8 @@ export class HeaderComponent {
   }
 
   getTotalNotifications(): number {
-    let count = this.unreadNotifications
-    if (this.showSurveyNotification) {
+    let count = this.newNotificationsCount
+    if (this.showSurveyNotification && !this.surveyNotificationReviewed) {
       count += 1
     }
     return count
@@ -1506,6 +1548,49 @@ export class HeaderComponent {
       .filter(Boolean)
       .map((r) => r.toUpperCase())
     return roles.includes(normalized)
+  }
+
+  private restoreReviewedNotificationsState(): void {
+    const storageKey = this.buildUserScopedStorageKey(this.reviewedNotificationsStorageKey)
+    const storedIds = this.readStorageArray(storageKey)
+    storedIds.forEach((id) => this.reviewedNotificationIds.add(id))
+
+    const surveyStorageKey = this.buildUserScopedStorageKey(this.reviewedSurveyStorageKey)
+    this.surveyNotificationReviewed = localStorage.getItem(surveyStorageKey) === "true"
+  }
+
+  private persistReviewedNotificationsState(): void {
+    const storageKey = this.buildUserScopedStorageKey(this.reviewedNotificationsStorageKey)
+    localStorage.setItem(storageKey, JSON.stringify(Array.from(this.reviewedNotificationIds)))
+  }
+
+  private persistSurveyNotificationReviewedState(): void {
+    const storageKey = this.buildUserScopedStorageKey(this.reviewedSurveyStorageKey)
+    localStorage.setItem(storageKey, String(this.surveyNotificationReviewed))
+  }
+
+  private buildUserScopedStorageKey(baseKey: string): string {
+    const user = this.authService.currentUserValue
+    const userKey = user?.id ?? user?.email ?? user?.username ?? "anonymous"
+    return `${baseKey}:${userKey}`
+  }
+
+  private readStorageArray(storageKey: string): string[] {
+    const rawValue = localStorage.getItem(storageKey)
+    if (!rawValue) {
+      return []
+    }
+
+    try {
+      const parsedValue = JSON.parse(rawValue)
+      if (!Array.isArray(parsedValue)) {
+        return []
+      }
+
+      return parsedValue.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    } catch {
+      return []
+    }
   }
 
   get subtitleText(): string {

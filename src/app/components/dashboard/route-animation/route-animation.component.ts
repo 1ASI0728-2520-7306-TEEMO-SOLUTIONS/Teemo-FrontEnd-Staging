@@ -2262,11 +2262,12 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private animateStep(): void {
-    if (
-      this.shipMarkers.length === 0 ||
-      this.traveledPolylines.length === 0 ||
-      this.currentPointIndex >= this.routePoints.length - 1
-    ) {
+    const routeCompleted = this.currentPointIndex >= this.routePoints.length - 1
+
+    if (this.shipMarkers.length === 0 || this.traveledPolylines.length === 0 || routeCompleted) {
+      if (routeCompleted) {
+        this.markRouteAsCompleted()
+      }
       this.stopAnimation()
       return
     }
@@ -2282,6 +2283,19 @@ export class RouteAnimationComponent implements OnInit, OnDestroy, OnChanges {
     this.updateTraveledPolylines(traveledPoints)
 
     this.updateCurrentPort()
+  }
+
+  private markRouteAsCompleted(): void {
+    if (this.routePoints.length > 0) {
+      this.currentPointIndex = this.routePoints.length - 1
+      this.updateShipMarkers(this.routePoints[this.currentPointIndex])
+      this.updateTraveledPolylines(this.routePoints)
+    }
+
+    if (this.routePorts.length > 0) {
+      // Move beyond the last index so every port, including destination, renders as visited.
+      this.currentPortIndex = this.routePorts.length
+    }
   }
 
   // Método auxiliar para detectar si el usuario está interactuando con el mapa
